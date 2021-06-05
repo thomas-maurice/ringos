@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>ESP - WS2812 UI</title>
+    <link rel="stylesheet" href="bootstrap.css">
+    <script src="jquery.js"></script>
+    <script src="bootstrap.js"></script>
+    <script src="notify.js"></script>
+    <script>
+        function updateInfoTab() {
+            $.getJSON("api/status", function (data) {
+                $("#mac").text(data["mac"]);
+                $("#summary_mac").text(data["mac"]);
+                $("#summary_name").text(data["hostname"]);
+                $("#name").text(data["hostname"]);
+                $("#ipaddress").text(data["address"]);
+                $("#wifi_status").text(data["wifi_status"]);
+                $("#led_status").text(data["led_on"]);
+                $("#chip_id").text(data["chip_id"]);
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not get updates from the device: " + textStatus, "error");
+            });
+        }
+
+        function updateChaseInfo() {
+            $.getJSON("api/chase", function (data) {
+                $("#chase_speed_range").val(data["speed"]);
+                if (data["direction"] == -1) {
+                    $("#switchCCW").prop("checked", true);
+                } else {
+                    $("#switchCCW").prop("checked", false);
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not get chase updates from the device: " + textStatus, "error");
+            });
+        }
+
+        function updateBrightnessInfo() {
+            $.getJSON("api/brightness", function (data) {
+                $("#brightness_range").val(data["brightness"]);
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not get brightness updates from the device: " + textStatus, "error");
+            });
+        }
+
+        function updateConfigTab() {
+            $.getJSON("api/config", function (data) {
+                $("#configName").val(data["hostname"]);
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not get the configuration of the device: " + textStatus, "error");
+            });
+        }
+
+        function updateColorTab() {
+            $.getJSON("api/color", function (data) {
+                $("#configColor").val(data["color"]);
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not get the colour of the device: " + textStatus, "error");
+            });
+            updateChaseInfo();
+            updateBrightnessInfo();
+        }
+
+        function updateKnownNetworks() {
+            $.getJSON("api/net/list", function (data) {
+                console.log(data);
+                $("#known_networks tbody").empty();
+                var i;
+                for (i = 0; i < data.length; i++) {
+                    $("#known_networks tbody").append("\
+                        <tr> \
+                            <td>"+ i + "</td><td id=\"known_network_ssid_" + i + "\">" + data[i] + "</td> \
+                            <td> \
+                                " + getKnownNetAction(i) + " \
+                            </td> \
+                        </tr> \
+                    ");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not list known networks: " + textStatus, "error");
+            });
+        }
+
+        function getNewNetAction(idx) {
+            result = "";
+
+            result += '<div class="input-group mb-3">';
+            result += '<input type="text" class="form-control" id="new_network_psk_' + idx + '" placeholder="Network password" aria-label="Network password">';
+            result += '<div class="input-group-append">';
+            result += '<button class="btn btn-outline-success" type="button" onclick="addNetwork(' + idx + ');">Add</button>';
+            result += '</div>';
+            result += '</div>';
+
+            return result;
+        }
+
+        function getKnownNetAction(idx) {
+            result = "";
+
+            result += '<div class="input-group mb-3">';
+            result += '<input type="text" class="form-control" id="known_network_psk_' + idx + '" placeholder="Change network password" aria-label="Network password">';
+            result += '<div class="input-group-append">';
+            result += '<button class="btn btn-outline-success" type="button" onclick="updateNetwork(' + idx + ');">Update</button>';
+            result += '<button class="btn btn-outline-danger" type="button" onclick="deleteNetwork(' + idx + ');">Forget</button>';
+            result += '</div>';
+            result += '</div>';
+
+            return result;
+        }
+
+        function updateScanNetworks() {
+            $.getJSON("api/net/scan", function (data) {
+                console.log(data);
+                $("#available_networks tbody").empty();
+                var i;
+                for (i = 0; i < data.length; i++) {
+
+                    $("#available_networks tbody").append("\
+                        <tr> \
+                            <td>"+ i + "</td><td id=\"new_network_ssid_" + i + "\">" + data[i]["ssid"] + "</td><td>" + data[i]["rssi"] + "</td> \
+                            <td> \
+                                " + getNewNetAction(i) + " \
+                            </td> \
+                        </tr> \
+                    ");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not list available networks: " + textStatus, "error");
+            });
+        }
+
+        function addNetwork(idx) {
+            $.ajax({
+                url: "api/net/add",
+                type: "POST",
+                data: JSON.stringify({ ssid: $("#new_network_ssid_" + idx).html(), psk: $("#new_network_psk_" + idx).val() }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully added network", "success");
+                    updateKnownNetworks();
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not add network: " + textStatus, "error");
+            });
+        }
+
+        function updateNetwork(idx) {
+            $.ajax({
+                url: "api/net/add",
+                type: "POST",
+                data: JSON.stringify({ ssid: $("#known_network_ssid_" + idx).html(), psk: $("#known_network_psk_" + idx).val() }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated network", "success");
+                    updateKnownNetworks();
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not update network: " + textStatus, "error");
+            });
+        }
+
+        function wipeNetwork(idx) {
+            $.ajax({
+                url: "api/net/reset",
+                type: "POST",
+                data: JSON.stringify({ reset: true }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully reset the network settings", "success");
+                    updateKnownNetworks();
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not reset the network settings: " + textStatus, "error");
+            });
+        }
+
+        function deleteNetwork(idx) {
+            $.ajax({
+                url: "api/net/del",
+                type: "POST",
+                data: JSON.stringify({ ssid: $("#known_network_ssid_" + idx).html() }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully deleted network", "success");
+                    updateKnownNetworks();
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not delete network: " + textStatus, "error");
+            });
+        }
+
+        function updateNetworkTab() {
+            updateKnownNetworks();
+            updateScanNetworks();
+        }
+
+        function updateColor() {
+            color = $("#configColor").val().replace(/#/g, "")
+            $.ajax({
+                url: "api/color",
+                type: "POST",
+                data: JSON.stringify({ color: color }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated colour", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the colour of the device: " + textStatus, "error");
+            });
+        }
+
+        function updateChaseSpeed() {
+            speed = $("#chase_speed_range").val()
+            $.ajax({
+                url: "api/chase/speed",
+                type: "POST",
+                data: JSON.stringify({ speed: speed }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated chase speed", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the chase speed: " + textStatus, "error");
+            });
+            direction = 1;
+            if ($("#switchCCW").is(":checked") == true) {
+                direction = -1
+            }
+            $.ajax({
+                url: "api/chase/direction",
+                type: "POST",
+                data: JSON.stringify({ direction: direction }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated chase durection", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the chase direction: " + textStatus, "error");
+            });
+        }
+
+        function setBrightness() {
+            $.ajax({
+                url: "api/brightness",
+                type: "POST",
+                data: JSON.stringify({ brightness: $('#brightness_range').val() }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated brightness", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the brightness of the device: " + textStatus, "error");
+            });
+        }
+
+        $(document).ready(function () {
+            $("#colorUpdateButton").click(updateColor);
+            $("#chaseAnimationUpdateButton").click(updateChaseSpeed);
+            $("#brightnessUpdateButton").click(setBrightness);
+            updateColorTab();
+            updateInfoTab();
+            updateConfigTab();
+            updateNetworkTab();
+            setInterval(updateInfoTab, 10000);
+            setInterval(updateConfigTab, 600000);
+            $("#reboot_button").click(function () {
+                $.notify("Asking the device to reboot", "info");
+                $.getJSON("/api/reboot", function (data) {
+                    $.notify("Asked to the device to reboot", "success");
+                }).fail(function (jqxhr, textStatus, error) {
+                    //$.notify("Failed to reboot the device: " + textStatus, "error");
+                });
+            });
+            $("#toggle_led_button").click(function () {
+                $.notify("Toggling LED", "info");
+                $.getJSON("api/toggle-led", function (data) {
+                    $.notify("Successfully toggled LED", "success");
+                    $("#led_status").text(data["led_on"]);
+                }).fail(function (jqxhr, textStatus, error) {
+                    $.notify("Failed to toggle the LED: " + textStatus, "error");
+                });
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Device: <span id="name"></span> (<span id="mac"></span>)</h1>
+        <ul class="nav nav-tabs" role="tablist" id="mainTab">
+            <li class="nav-item">
+                <a class="nav-link active" id="color-tab" data-bs-toggle="tab" href="#nav-color" role="presentation"
+                    aria-controls="color" aria-selected="true">Colour</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="network-tab" data-bs-toggle="tab" href="#nav-network" role="presentation"
+                    aria-controls="network" aria-selected="false">Network configuration</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="summary-tab" data-bs-toggle="tab" href="#nav-summary" role="presentation"
+                    aria-controls="summary" aria-selected="false">Summary</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="config-tab" data-bs-toggle="tab" href="#nav-config" role="presentation"
+                    aria-controls="config" aria-selected="false">Configuration</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="reboot-tab" data-bs-toggle="tab" href="#nav-reboot" role="presentation"
+                    aria-controls="reboot" aria-selected="false">Reboot</a>
+            </li>
+        </ul>
+        <div class="tab-content" id="tabContent">
+            <div class="tab-pane fade show active" id="nav-color" role="tabpanel" aria-labelledby="color-tab">
+                <div class="alert alert-success mt-2">Update the colour of the animation</div>
+                <form id="#colorForm">
+                    <div class="form-group">
+                        <label for="configColour">Colour change</label>
+                        <input type="color" class="form-control form-control-color" name="color" id="configColor"
+                            value="#000000" aria-describedby="configColorHelp" title="Choose your color">
+                        <small id="configColorHelp" class="form-text text-muted">Colour of the strip</small>
+                    </div>
+                </form>
+                <br />
+                <button class="btn btn-primary" id="colorUpdateButton">Update colour</button>
+                <br />
+                <br />
+                <h3>Change brightness</h3>
+                <label for="brightness_range" class="form-label">Brightness</label>
+                <input type="range" class="form-range" min="0" max="255" step="1" id="brightness_range">
+                <button class="btn btn-primary" id="brightnessUpdateButton">Update brightness</button>
+                <br></br>
+                <h3>Chase animation setting</h3>
+                <label for="chase_speed_range" class="form-label">Chase speed (lower is faster)</label>
+                <input type="range" class="form-range" min="1" max="10" step="1" id="chase_speed_range">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="switchCCW">
+                    <label class="form-check-label" for="switchCCW">Chase counter clockwise</label>
+                </div>
+                <button class="btn btn-primary" id="chaseAnimationUpdateButton">Update chase animation</button>
+            </div>
+            <div class="tab-pane fade" id="nav-network" role="tabpanel" aria-labelledby="network-tab">
+                <div class="container">
+                    <h2>Network setup</h2>
+                    <h3>Known networks | <button type="button" class="btn btn-secondary"
+                            onclick="updateKnownNetworks();">Refresh</button></h3>
+                    <table class="table" id="known_networks">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <h3>Available networks | <button type="button" class="btn btn-secondary"
+                            onclick="updateScanNetworks();">Refresh</button></h3>
+                    <table class="table" id="available_networks">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Strength</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <div class="alert alert-danger mt-2">Be careful, this will wipe the device's network configuration
+                        (saved networks and so on) without asking for confirmation !</div>
+                    <center><button type="button" class="btn btn-danger" onclick="wipeNetwork();">I know what I'm doing,
+                            wipe it</button></center>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="nav-summary" role="tabpanel" aria-labelledby="summary-tab">
+                <div class="container">
+                    <h2>Device informations</h2>
+                    <ul>
+                        <li>Name: <span id="summary_name"></span></li>
+                        <li>IP address: <span id="ipaddress"></span></li>
+                        <li>MAC address: <span id="summary_mac"></span></li>
+                        <li>WiFi status: <span id="wifi_status"></span></li>
+                        <li>LED is on: <span id="led_status"></span></li>
+                        <li>Chip ID: <span id="chip_id"></span></li>
+                    </ul>
+                    <button type="button" class="btn btn-info btn-lg btn-block" id="toggle_led_button">Toggle LED
+                        state</button>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="nav-config" role="tabpanel" aria-labelledby="config-tab">
+                <div class="alert alert-warning mt-2">Note that any update to the configuration requires a reboot.</div>
+                <form action="api/config" method="POST">
+                    <div class="form-group">
+                        <label for="configEndpoint">Device name</label>
+                        <input type="text" class="form-control" name="name" id="configName"
+                            aria-describedby="configHostnameHelp" placeholder="Enter a name">
+                        <small id="configHostnameHelp" class="form-text text-muted">Which name should the jar advertise
+                            on the network ?</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="configEndpoint">Device Password</label>
+                        <input type="text" class="form-control" name="password" id="configDevicePassword"
+                            placeholder="Enter a password">
+                    </div>
+                    </br>
+                    <button type="submit" class="btn btn-primary" id="configUpdateButton">Update</button>
+                </form>
+            </div>
+            <div class="tab-pane fade" id="nav-reboot" role="tabpanel" aria-labelledby="reboot-tab">
+                <div class="container">
+                    <div class="alert alert-danger mt-2">Be careful, this will reboot the device without asking for
+                        confirmation !</div>
+                    <center><button type="button" class="btn btn-danger" id="reboot_button">I know what I'm
+                            doing</button></center>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
