@@ -1,6 +1,8 @@
 # RingOS
 A firmware for ESP8266 microcontroller to drive LED strips and rings
 
+![An example LED ring in action](https://github.com/thomas-maurice/ringos/blob/master/_assets/ring.gif)
+
 ## What is this ?
 This project is a firmware that aims at providing an easy way to drive LED strips (WS2812B at the moment).
 It offers an API as well as a web interface that should cover the basic modes of operations you want.
