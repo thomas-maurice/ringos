@@ -40,7 +40,7 @@
         }
 
         function updateBrightnessInfo() {
-            $.getJSON("api/brightness", function (data) {
+            $.getJSON("api/colour", function (data) {
                 $("#brightness_range").val(data["brightness"]);
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not get brightness updates from the device: " + textStatus, "error");
@@ -272,7 +272,7 @@
                     dataType: "json",
                     contentType: "application/json",
                     success: function () {
-                        $.notify("ashed for a reboot", "success");
+                        $.notify("asked for a reboot", "success");
                     }
                 }).fail(function (jqxhr, textStatus, error) {
                     $.notify("coluld not ask for a reboot: " + textStatus, "error");
