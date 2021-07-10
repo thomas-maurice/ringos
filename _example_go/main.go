@@ -21,6 +21,7 @@ func init() {
 func main() {
 	flag.Parse()
 
+	// Gets a client
 	client, err := ringo.NewClient(&ringo.ClientConfig{
 		TargetAddress: address,
 	})
@@ -29,36 +30,43 @@ func main() {
 		panic(err)
 	}
 
+	// Lists the scanned networks, if the list is empty
+	// something is likely wrong and you should retry
 	scanned, err := client.ScanNetworks()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(scanned)
 
+	// Lists the configured networks
 	known, err := client.KnownNetworks()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(known)
 
+	// Gets the chip's status
 	status, err := client.Status()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(status)
 
+	// Gets the current colour config
 	colour, err := client.Colour()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(colour)
 
+	// Gets the current chase config
 	chase, err := client.Chase()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(chase)
 
+	// Gets the current breathing config
 	breathing, err := client.Breathing()
 	if err != nil {
 		panic(err)
@@ -66,7 +74,7 @@ func main() {
 
 	fmt.Println(breathing)
 
-	// backs up the base state
+	// backs up the base colour state
 	initialState, err := client.Colour()
 	if err != nil {
 		panic(err)
@@ -79,6 +87,7 @@ func main() {
 		Colour:     "ff0000",
 	}
 
+	// changes shit a bit
 	_, err = client.SetColour(newColour)
 	if err != nil {
 		panic(err)
