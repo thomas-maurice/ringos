@@ -590,7 +590,7 @@ void setup()
           int d = json["direction"].as<int>();
           if (d != 1 && d != -1)
           {
-            return jsonError(request, 400, "speed should be 1 or -1");
+            return jsonError(request, 400, "direction should be 1 or -1");
           }
           chaseDirection = d;
           if (persist)
