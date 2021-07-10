@@ -35,15 +35,15 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 	var B int
 
 	switch colour {
-	case 1:
+	case 0:
 		R = 255
 		G = rand.Int() % 255
 		B = rand.Int() % 255
-	case 2:
+	case 1:
 		R = rand.Int() % 255
 		G = 255
 		B = rand.Int() % 255
-	case 3:
+	case 2:
 		R = rand.Int() % 255
 		G = rand.Int() % 255
 		B = 255
@@ -51,7 +51,7 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 
 	c := fmt.Sprintf("%02x%02x%02x", R, G, B)
 
-	fmt.Println(c)
+	fmt.Println(colour, c)
 
 	return "chase", &ringo.ColourRequest{
 		Colour: c,
