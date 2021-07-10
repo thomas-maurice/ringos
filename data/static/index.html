@@ -57,7 +57,7 @@
 
         function updateColorTab() {
             $.getJSON("api/color", function (data) {
-                $("#configColor").val(data["color"]);
+                $("#configColor").val("#" + data["color"]);
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not get the colour of the device: " + textStatus, "error");
             });
@@ -207,7 +207,7 @@
             $.ajax({
                 url: "api/color",
                 type: "POST",
-                data: JSON.stringify({ color: color }),
+                data: JSON.stringify({ color: color, persist: true}),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -223,7 +223,7 @@
             $.ajax({
                 url: "api/chase/speed",
                 type: "POST",
-                data: JSON.stringify({ speed: speed }),
+                data: JSON.stringify({ speed: speed, persist: true}),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -239,7 +239,7 @@
             $.ajax({
                 url: "api/chase/direction",
                 type: "POST",
-                data: JSON.stringify({ direction: direction }),
+                data: JSON.stringify({ direction: direction, persist: true}),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -254,7 +254,7 @@
             $.ajax({
                 url: "api/brightness",
                 type: "POST",
-                data: JSON.stringify({ brightness: $('#brightness_range').val() }),
+                data: JSON.stringify({ brightness: $('#brightness_range').val(), persist: true}),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {

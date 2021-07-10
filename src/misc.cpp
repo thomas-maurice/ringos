@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "fsUtil.h"
 #include "misc.h"
 
@@ -28,4 +29,13 @@ int mod(int a, int b)
 {
     int r = a % b;
     return r < 0 ? r + b : r;
+}
+
+// isPersist returns the value of the "persist" boolean field
+// in a json, if present, if absent it will return false.
+bool isPersist(JsonVariant &json) {
+    if (json["persist"] != nullptr && json["persist"].as<bool>()) {
+        return true;
+    }
+    return false;
 }

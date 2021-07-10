@@ -427,7 +427,10 @@ void setup()
           {
             return jsonError(request, 400, "you must set 'brightness' to a correct value");
           }
-          saveBrightness(brightness);
+          if (isPersist(json))
+          {
+            saveBrightness(brightness);
+          }
           BRIGHTNESS = brightness;
           return jsonSuccess(request, 200, "changed brightness");
         }
@@ -448,9 +451,12 @@ void setup()
           G = (int)strtol(color.substring(2, 4).c_str(), NULL, 16);
           B = (int)strtol(color.substring(4, 6).c_str(), NULL, 16);
 
-          saveColor("R", R);
-          saveColor("G", G);
-          saveColor("B", B);
+          if (isPersist(json))
+          {
+            saveColor("R", R);
+            saveColor("G", G);
+            saveColor("B", B);
+          }
 
           Serial.printf("R:%d G:%d B:%d\n", R, G, B);
           return jsonSuccess(request, 200, "changed color");
@@ -674,7 +680,10 @@ void setup()
             return jsonError(request, 400, "speed should be between 1 and 10");
           }
           chaseSpeed = speed;
-          writeIntFile("/config/chase/speed", speed);
+          if (isPersist(json))
+          {
+            writeIntFile("/config/chase/speed", speed);
+          }
           Serial.printf("chase speed set to %d\n", speed);
           return jsonSuccess(request, 200, "successfully changed chase speed");
         }
@@ -693,7 +702,10 @@ void setup()
             return jsonError(request, 400, "length should be between 0 and NUM_LEDS");
           }
           chaseTrailLength = length;
-          writeIntFile("/config/chase/trail", length);
+          if (isPersist(json))
+          {
+            writeIntFile("/config/chase/trail", length);
+          }
           Serial.printf("chase trail set to %d\n", length);
           return jsonSuccess(request, 200, "successfully changed chase trail length");
         }
@@ -712,7 +724,10 @@ void setup()
             return jsonError(request, 400, "speed should be 1 or -1");
           }
           chaseDirection = d;
-          writeIntFile("/config/chase/direction", d);
+          if (isPersist(json))
+          {
+            writeIntFile("/config/chase/direction", d);
+          }
           Serial.printf("chase direction set to %d\n", d);
           return jsonSuccess(request, 200, "successfully changed chase direction");
         }
@@ -734,10 +749,10 @@ void setup()
   server.addHandler(chaseTrailSetHandler);
 
   server.serveStatic("/index.html", LittleFS, "/static/index.html");
-  server.serveStatic("/bootstrap.js", LittleFS, "/static/bootstrap.js");
-  server.serveStatic("/jquery.js", LittleFS, "/static/jquery.js");
-  server.serveStatic("/notify.js", LittleFS, "/static/notify.js");
-  server.serveStatic("/bootstrap.css", LittleFS, "/static/bootstrap.css");
+  server.serveStatic("/bootstrap.js", LittleFS, "/static/bootstrap.js").setCacheControl("max-age=3600");
+  server.serveStatic("/jquery.js", LittleFS, "/static/jquery.js").setCacheControl("max-age=3600");
+  server.serveStatic("/notify.js", LittleFS, "/static/notify.js").setCacheControl("max-age=3600");
+  server.serveStatic("/bootstrap.css", LittleFS, "/static/bootstrap.css").setCacheControl("max-age=3600");
   server.serveStatic("/favicon.ico", LittleFS, "/static/favicon.ico").setCacheControl("max-age=3600");
   server.serveStatic("/static/", LittleFS, "/static/").setCacheControl("max-age=600");
 
