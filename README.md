@@ -54,14 +54,79 @@ Note that you can add as many networks as you want (with respect of the internal
 ![Main screen](https://github.com/thomas-maurice/ringos/blob/master/_assets/main.png)
 
 ## API documentation
-TODO
+### `POST /api/colour`
+Changes the colour of the strip. Example payload:
+```json
+{
+  "colour": "123456",
+  "brightness": 69,
+  "mode": "chase",
+  "persist": true
+}
+```
 
+* `colour` is the colour in hex format without the `#`
+* `brightness` is the brightness of the strip in the `0-255` range
+* `mode` is the colour mode, can be one of `chase` `static` or `breathing`
+* `persist` indicates if the change should be saved to flash
+
+### `GET /api/colour`
+Reads the state of the colour of the device
+
+```json
+{
+  "colour": "2207ED",
+  "R": 34,
+  "G": 7,
+  "B": 237,
+  "brightness": 20,
+  "mode": "chase"
+}
+```
+
+### `POST /api/chase`
+Configures the chase mode, like so
+
+```json
+{
+  "speed": 3,
+  "length": 10,
+  "direction": 1
+}
+```
+
+* `speed` is between `1-10`, lower is faster
+* `length` is the length of the trail, in LEDs
+* `direction` says if it runs clockwise (`1`) or anticlockwise (`-1`)
+
+### `GET /api/chase`
+```json
+{
+  "speed": 1,
+  "direction": -1,
+  "length": 12
+}
+```
+### `GET /api/status`
+Reads the general status of the chip
+```json
+{
+  "free_heap": 25544,
+  "ssid": "le wireless network",
+  "mac": "A4:CF:12:D9:BC:C8",
+  "address": "10.99.69.69",
+  "led_on": false,
+  "hostname": "ring-o",
+  "leds": 30,
+  "wifi_status": "connected",
+  "chip_id": "D9BCC8"
+}
+```
 ## Limitations
 Eventhough the project works pretty well as is, it has a few limitations
 
 * This is an 80Mhz microcontroller, it won't handle 100 requests per second
 * Serving the UI can be quite slow, use the API whenever possible
-
 ## Further plans
 
 - [ ] API documentation

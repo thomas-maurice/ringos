@@ -373,7 +373,7 @@ void setup()
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
 
-        DynamicJsonDocument jsonBuffer(128);
+        DynamicJsonDocument jsonBuffer(256);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
 
         root["colour"] = colour;
@@ -381,20 +381,6 @@ void setup()
         root["G"] = G;
         root["B"] = B;
         root["brightness"] = BRIGHTNESS;
-        serializeJson(jsonBuffer, *response);
-
-        request->send(response);
-      });
-
-  server.on(
-      "/api/mode", HTTP_GET, [](AsyncWebServerRequest *request)
-      {
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
-        response->setCode(200);
-
-        DynamicJsonDocument jsonBuffer(128);
-        JsonVariant root = jsonBuffer.as<JsonVariant>();
-
         root["mode"] = OPERATION_MODE;
         serializeJson(jsonBuffer, *response);
 
@@ -407,11 +393,12 @@ void setup()
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
 
-        DynamicJsonDocument jsonBuffer(128);
+        DynamicJsonDocument jsonBuffer(256);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
 
         root["speed"] = chaseSpeed;
         root["direction"] = chaseDirection;
+        root["length"] = chaseTrailLength;
         serializeJson(jsonBuffer, *response);
 
         request->send(response);
