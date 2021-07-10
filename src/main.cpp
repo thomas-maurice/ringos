@@ -63,6 +63,14 @@
 /* Resets the chip (effectively a soft reboot) */
 void (*softReset)(void) = 0;
 
+/* Variables to control reboot */
+// Has a reboot order been issued ?
+bool ASKED_FOR_REBOOT = false;
+// In how many seconds the reboot will happen ?
+// this is mostly so the api client gets the
+// full replies before the connexion resets
+long REBOOT_TICKS = 3 * FRAMES_PER_SECOND;
+
 AsyncWebServer server(80);
 ESP8266WiFiMulti wifiMulti;
 DNSServer dnsServer;
@@ -286,17 +294,6 @@ void setup()
   digitalWrite(SIG_LED, HIGH);
 
   server.on(
-      "/api/reboot", HTTP_GET, [](AsyncWebServerRequest *request)
-      {
-        Serial.println("asked to reboot via the API");
-        request->send(200, "application/json", "{\"status\": \"ok\"}");
-        server.end();
-        Serial.println("rebooting, bye");
-        delay(1000);
-        softReset();
-      });
-
-  server.on(
       "/version", HTTP_GET, [](AsyncWebServerRequest *request)
       { request->send(200, "text/plain", readFile("/version", 128)); });
 
@@ -381,7 +378,7 @@ void setup()
 
         request->send(response);
       });
-  
+
   server.on(
       "/api/ping", HTTP_GET, [](AsyncWebServerRequest *request)
       {
@@ -694,8 +691,8 @@ void setup()
 
         return jsonSuccess(request, 200, "successfully changed colour mode");
       });
-  
-    AsyncCallbackJsonWebHandler *systemSetHandler = new AsyncCallbackJsonWebHandler(
+
+  AsyncCallbackJsonWebHandler *systemSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/system", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
         if (json["num_leds"] != nullptr)
@@ -716,6 +713,22 @@ void setup()
 
         return jsonSuccess(request, 200, "successfully changed system infos, you'll need a reboot");
       });
+  
+  AsyncCallbackJsonWebHandler *rebootHandler = new AsyncCallbackJsonWebHandler(
+      "/api/reboot", [](AsyncWebServerRequest *request, JsonVariant &json)
+      {
+        if (json["reboot"] != nullptr)
+        {
+          bool reboot = json["reboot"].as<bool>();
+          if(reboot) {
+            ASKED_FOR_REBOOT=true;
+          } else {
+            return jsonSuccess(request, 200, "no 'reboot' field, no reboot");
+          }
+        }
+
+        return jsonSuccess(request, 200, "asked for a reboot");
+      });
 
   server.addHandler(pingHandler);
   server.addHandler(networkAddHandler);
@@ -725,7 +738,7 @@ void setup()
   server.addHandler(colourSetHandler);
   server.addHandler(systemSetHandler);
   server.addHandler(chaseSetHandler);
-
+  server.addHandler(rebootHandler);
   server.addHandler(pingHandler);
 
   server.serveStatic("/index.html", LittleFS, "/static/index.html");
@@ -777,8 +790,6 @@ void loop()
       }
     }
     chasePauseCounter = (chasePauseCounter + 1) % chaseSpeed;
-    FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
   }
   else if (OPERATION_MODE == "static")
   {
@@ -786,8 +797,6 @@ void loop()
     {
       leds[i] = CRGB(R, G, B);
     }
-    FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
   }
   else
   {
@@ -801,12 +810,23 @@ void loop()
     {
       leds[i] = CRGB(r, g, b);
     }
-    FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
+
     val += increment;
     if (val == base || val == (maxVal))
     {
       increment *= -1;
+    }
+  }
+
+  FastLED.show();
+  FastLED.delay(1000 / FRAMES_PER_SECOND);
+
+  if (ASKED_FOR_REBOOT)
+  {
+    REBOOT_TICKS--;
+    if (REBOOT_TICKS <= 0)
+    {
+      softReset();
     }
   }
 }
