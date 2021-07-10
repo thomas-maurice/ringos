@@ -381,6 +381,21 @@ void setup()
 
         request->send(response);
       });
+  
+  server.on(
+      "/api/ping", HTTP_GET, [](AsyncWebServerRequest *request)
+      {
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        response->setCode(200);
+
+        DynamicJsonDocument jsonBuffer(64);
+        JsonVariant root = jsonBuffer.as<JsonVariant>();
+
+        root["ping"] = "pong";
+        serializeJson(jsonBuffer, *response);
+
+        request->send(response);
+      });
 
   server.on(
       "/api/net/scan", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -710,6 +725,8 @@ void setup()
   server.addHandler(colourSetHandler);
   server.addHandler(systemSetHandler);
   server.addHandler(chaseSetHandler);
+
+  server.addHandler(pingHandler);
 
   server.serveStatic("/index.html", LittleFS, "/static/index.html");
   server.serveStatic("/bootstrap.js", LittleFS, "/static/bootstrap.js").setCacheControl("max-age=3600");
