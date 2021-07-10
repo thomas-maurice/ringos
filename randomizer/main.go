@@ -15,6 +15,9 @@ import (
 var (
 	address string
 	debug   bool
+	Red     = 0
+	Green   = 1
+	Blue    = 2
 )
 
 func init() {
@@ -25,6 +28,8 @@ func init() {
 }
 
 func randomize() (string, *ringo.ColourRequest, interface{}) {
+	colour := rand.Int() % 3
+
 	R := rand.Int() % 256
 	G := rand.Int() % 256
 	B := rand.Int() % 256
