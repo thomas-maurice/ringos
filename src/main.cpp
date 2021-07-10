@@ -729,6 +729,27 @@ void setup()
 
         return jsonSuccess(request, 200, "successfully changed colour mode");
       });
+  
+    AsyncCallbackJsonWebHandler *systemSetHandler = new AsyncCallbackJsonWebHandler(
+      "/api/system", [](AsyncWebServerRequest *request, JsonVariant &json)
+      {
+        bool persist = isPersist(json);
+
+        if (json["num_leds"] != nullptr)
+        {
+          int num_leds = json["num_leds"].as<int>();
+          if (num_leds < 0 || num_leds > MAX_NUM_LEDS)
+          {
+            return jsonError(request, 400, "you must set 'num_leds' to a correct value");
+          }
+          if (persist)
+          {
+            writeIntFile("/config/leds", num_leds);
+          }
+        }
+
+        return jsonSuccess(request, 200, "successfully changed system infos, you'll need a reboot");
+      });
 
   server.addHandler(pingHandler);
   server.addHandler(networkAddHandler);
@@ -736,7 +757,7 @@ void setup()
   server.addHandler(networkResetHandler);
 
   server.addHandler(colourSetHandler);
-
+  server.addHandler(systemSetHandler);
   server.addHandler(chaseSetHandler);
 
   server.serveStatic("/index.html", LittleFS, "/static/index.html");
