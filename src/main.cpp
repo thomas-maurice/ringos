@@ -401,7 +401,7 @@ void setup()
         DynamicJsonDocument jsonBuffer(128);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
 
-        root["speed"] = breathingIncrement;
+        root["speed"] = abs(breathingIncrement);
         serializeJson(jsonBuffer, *response);
 
         request->send(response);

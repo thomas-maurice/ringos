@@ -53,6 +53,10 @@ Note that you can add as many networks as you want (with respect of the internal
 ## Screenshots
 ![Main screen](https://github.com/thomas-maurice/ringos/blob/master/_assets/main.png)
 
+## Examples and SDK
+You'll find examples and a Go SDK respectively [here](https://github.com/thomas-maurice/ringos/blob/master/_example_go/main.go)
+and [there](https://github.com/thomas-maurice/ringos/blob/master/go-client/README.md)
+
 ## API documentation
 ### `POST /api/colour`
 Changes the colour of the strip. Example payload:
@@ -115,7 +119,7 @@ Gets the status of the breathing animation
 
 ```json
 {
-  "breathing": 1
+  "speed": 1
 }
 ```
 
