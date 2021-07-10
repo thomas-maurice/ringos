@@ -122,6 +122,86 @@ Reads the general status of the chip
   "chip_id": "D9BCC8"
 }
 ```
+
+### `GET /api/net/scan`
+Returns the list of networks that are around. Since the polling of networks is async this call may or may not
+return anything. If at some point it returns an empty list just try again. Since you are talking to the chip
+it should at least have its own network.
+
+```json
+[
+  {
+    "rssi": -72,
+    "ssid": "this is a network",
+    "bssid": "28:F3:66:41:CB:D3",
+    "channel": 12,
+    "secure": 4,
+    "hidden": false
+  }
+]
+```
+
+### `POST /api/net/del`
+Deletes a network by SSID
+
+Payload:
+```json
+{
+  "ssid": "some network"
+}
+```
+
+### `POST /api/net/add`
+Adds a new network. Payload:
+
+```json
+{
+  "ssid": "some ssid",
+  "psk": "a very secret password"
+}
+```
+
+### `POST /api/net/reset`
+Wipes the entirety of the network config.
+
+Payload:
+```json
+{
+  "reset": true
+}
+```
+
+### `GET /api/ping`
+Ping
+
+### `POST /api/ping`
+Payload:
+```json
+{
+  "data": "yo"
+}
+```
+
+Response:
+```json
+{
+  "data": "yo"
+}
+```
+
+Set `reset` if you are sure of what you are doing. It will take effect after a reboot.
+
+### `GET /api/net/list`
+List the SSID of the saved networks. It obviously does not return the associated PSK
+
+```json
+[
+  "a network",
+  "another network"
+]
+```
+
+
 ## Limitations
 Eventhough the project works pretty well as is, it has a few limitations
 
