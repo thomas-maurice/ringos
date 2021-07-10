@@ -55,9 +55,9 @@
             });
         }
 
-        function updateColorTab() {
-            $.getJSON("api/color", function (data) {
-                $("#configColor").val("#" + data["color"]);
+        function updateColourTab() {
+            $.getJSON("api/colour", function (data) {
+                $("#configColour").val("#" + data["colour"]);
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not get the colour of the device: " + textStatus, "error");
             });
@@ -202,12 +202,12 @@
             updateScanNetworks();
         }
 
-        function updateColor() {
-            color = $("#configColor").val().replace(/#/g, "")
+        function updateColour() {
+            colour = $("#configColour").val().replace(/#/g, "")
             $.ajax({
-                url: "api/color",
+                url: "api/colour",
                 type: "POST",
-                data: JSON.stringify({ color: color, persist: true}),
+                data: JSON.stringify({ colour: colour, persist: true}),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -220,26 +220,14 @@
 
         function updateChaseSpeed() {
             speed = $("#chase_speed_range").val()
-            $.ajax({
-                url: "api/chase/speed",
-                type: "POST",
-                data: JSON.stringify({ speed: speed, persist: true}),
-                dataType: "json",
-                contentType: "application/json",
-                success: function () {
-                    $.notify("Successfully updated chase speed", "success");
-                }
-            }).fail(function (jqxhr, textStatus, error) {
-                $.notify("Could not change the chase speed: " + textStatus, "error");
-            });
             direction = 1;
             if ($("#switchCCW").is(":checked") == true) {
                 direction = -1
             }
             $.ajax({
-                url: "api/chase/direction",
+                url: "api/chase",
                 type: "POST",
-                data: JSON.stringify({ direction: direction, persist: true}),
+                data: JSON.stringify({ direction: direction, speed: speed, persist: true}),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -252,7 +240,7 @@
 
         function setBrightness() {
             $.ajax({
-                url: "api/brightness",
+                url: "api/colour",
                 type: "POST",
                 data: JSON.stringify({ brightness: $('#brightness_range').val(), persist: true}),
                 dataType: "json",
@@ -266,10 +254,10 @@
         }
 
         $(document).ready(function () {
-            $("#colorUpdateButton").click(updateColor);
+            $("#colourUpdateButton").click(updateColour);
             $("#chaseAnimationUpdateButton").click(updateChaseSpeed);
             $("#brightnessUpdateButton").click(setBrightness);
-            updateColorTab();
+            updateColourTab();
             updateInfoTab();
             updateConfigTab();
             updateNetworkTab();
@@ -327,13 +315,13 @@
                 <form id="#colorForm">
                     <div class="form-group">
                         <label for="configColour">Colour change</label>
-                        <input type="color" class="form-control form-control-color" name="color" id="configColor"
-                            value="#000000" aria-describedby="configColorHelp" title="Choose your color">
-                        <small id="configColorHelp" class="form-text text-muted">Colour of the strip</small>
+                        <input type="color" class="form-control form-control-color" name="color" id="configColour"
+                            value="#000000" aria-describedby="configColourHelp" title="Choose your color">
+                        <small id="configColourHelp" class="form-text text-muted">Colour of the strip</small>
                     </div>
                 </form>
                 <br />
-                <button class="btn btn-primary" id="colorUpdateButton">Update colour</button>
+                <button class="btn btn-primary" id="colourUpdateButton">Update colour</button>
                 <br />
                 <br />
                 <h3>Change brightness</h3>
