@@ -51,8 +51,6 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 
 	c := fmt.Sprintf("%02x%02x%02x", R, G, B)
 
-	fmt.Println(colour, c)
-
 	return "chase", &ringo.ColourRequest{
 		Colour: c,
 	}, nil
