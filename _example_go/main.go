@@ -24,6 +24,7 @@ func main() {
 	// Gets a client
 	client, err := ringo.NewClient(&ringo.ClientConfig{
 		TargetAddress: address,
+		Debug:         debug,
 	})
 
 	if err != nil {

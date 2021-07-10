@@ -18,12 +18,14 @@ type Client struct {
 
 type ClientConfig struct {
 	TargetAddress string
+	Debug         bool
 }
 
 func NewClient(config *ClientConfig) (*Client, error) {
 	return &Client{
 		httpClient:    &http.Client{},
 		targetAddress: config.TargetAddress,
+		debug:         config.Debug,
 	}, nil
 }
 
