@@ -99,6 +99,26 @@ Configures the chase mode, like so
 * `length` is the length of the trail, in LEDs
 * `direction` says if it runs clockwise (`1`) or anticlockwise (`-1`)
 
+### `POST /api/breathing`
+Configures the breathing mode, like so
+
+```json
+{
+  "speed": 10
+}
+```
+
+* `speed` is between `1-20`, higher is faster
+
+### `GET /api/breathing`
+Gets the status of the breathing animation
+
+```json
+{
+  "breathing": 1
+}
+```
+
 ### `GET /api/chase`
 ```json
 {

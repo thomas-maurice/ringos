@@ -60,6 +60,9 @@
 // Default chase direction 1 is clockwise
 #define DEFAULT_CHASE_DIRECTION 1
 
+// Default breathing speed
+#define DEFAULT_BREATHING_SPEED 10
+
 /* Resets the chip (effectively a soft reboot) */
 void (*softReset)(void) = 0;
 
@@ -89,6 +92,11 @@ int chaseSpeed = 3;
 int chaseLeadPosition = 0;
 int chaseDirection = -1;
 int chaseTrailLength = NUM_LEDS - 1;
+
+/* variables related to the breathing animation */
+int breathingIncrement = 20;
+int maxBreathingVal = 255;
+int breathingValue = 0;
 
 /* Representation of the LEDs stip/ring */
 CRGB leds[MAX_NUM_LEDS];
@@ -202,6 +210,11 @@ void setup()
   if (OPERATION_MODE == "")
   {
     OPERATION_MODE = DEFAULT_OPERATION_MODE;
+  }
+  breathingIncrement = readIntFile("/config/breathing/speed", 16);
+  if (breathingIncrement == 0)
+  {
+    breathingIncrement = DEFAULT_BREATHING_SPEED;
   }
 
   FastLED.setBrightness(BRIGHTNESS);
@@ -374,6 +387,21 @@ void setup()
         root["speed"] = chaseSpeed;
         root["direction"] = chaseDirection;
         root["length"] = chaseTrailLength;
+        serializeJson(jsonBuffer, *response);
+
+        request->send(response);
+      });
+
+  server.on(
+      "/api/breathing", HTTP_GET, [](AsyncWebServerRequest *request)
+      {
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        response->setCode(200);
+
+        DynamicJsonDocument jsonBuffer(128);
+        JsonVariant root = jsonBuffer.as<JsonVariant>();
+
+        root["speed"] = breathingIncrement;
         serializeJson(jsonBuffer, *response);
 
         request->send(response);
@@ -633,6 +661,28 @@ void setup()
         return jsonSuccess(request, 200, "successfully changed chase configuration");
       });
 
+  AsyncCallbackJsonWebHandler *breathingSetHandler = new AsyncCallbackJsonWebHandler(
+      "/api/breathing", [](AsyncWebServerRequest *request, JsonVariant &json)
+      {
+        bool persist = isPersist(json);
+        if (json["speed"] != nullptr)
+        {
+          int speed = json["speed"].as<int>();
+          if (speed < 1 || speed > 40)
+          {
+            return jsonError(request, 400, "speed should be between 1 and 40");
+          }
+          breathingIncrement = speed;
+          if (persist)
+          {
+            writeIntFile("/config/breathing/speed", speed);
+          }
+          Serial.printf("breathing speed set to %d\n", speed);
+        }
+
+        return jsonSuccess(request, 200, "successfully changed chase configuration");
+      });
+
   AsyncCallbackJsonWebHandler *colourSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/colour", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
@@ -713,16 +763,19 @@ void setup()
 
         return jsonSuccess(request, 200, "successfully changed system infos, you'll need a reboot");
       });
-  
+
   AsyncCallbackJsonWebHandler *rebootHandler = new AsyncCallbackJsonWebHandler(
       "/api/reboot", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
         if (json["reboot"] != nullptr)
         {
           bool reboot = json["reboot"].as<bool>();
-          if(reboot) {
-            ASKED_FOR_REBOOT=true;
-          } else {
+          if (reboot)
+          {
+            ASKED_FOR_REBOOT = true;
+          }
+          else
+          {
             return jsonSuccess(request, 200, "no 'reboot' field, no reboot");
           }
         }
@@ -738,6 +791,7 @@ void setup()
   server.addHandler(colourSetHandler);
   server.addHandler(systemSetHandler);
   server.addHandler(chaseSetHandler);
+  server.addHandler(breathingSetHandler);
   server.addHandler(rebootHandler);
   server.addHandler(pingHandler);
 
@@ -753,12 +807,6 @@ void setup()
 
   WiFi.scanNetworks(true);
 }
-
-// TODO: make the variables names more sensible
-int increment = 1;
-int base = 0;
-int maxVal = 255;
-int val = base;
 
 void loop()
 {
@@ -793,7 +841,11 @@ void loop()
   }
   else if (OPERATION_MODE == "breathing")
   {
-    double factor = double(val) / double(maxVal);
+    if (breathingValue >= 255)
+      breathingValue = 255;
+    if (breathingValue <= 0)
+      breathingValue = 0;
+    double factor = double(breathingValue) / double(maxBreathingVal);
 
     int r = (int)map(R * factor, 0, 256, 0, 230);
     int g = (int)map(G * factor, 0, 256, 0, 230);
@@ -804,10 +856,10 @@ void loop()
       leds[i] = CRGB(r, g, b);
     }
 
-    val += increment;
-    if (val == base || val == (maxVal))
+    breathingValue += breathingIncrement;
+    if (breathingValue <= 0 || breathingValue >= (maxBreathingVal))
     {
-      increment *= -1;
+      breathingIncrement *= -1;
     }
   }
   else
