@@ -791,14 +791,7 @@ void loop()
     }
     chasePauseCounter = (chasePauseCounter + 1) % chaseSpeed;
   }
-  else if (OPERATION_MODE == "static")
-  {
-    for (int i = 0; i < NUM_LEDS; i++)
-    {
-      leds[i] = CRGB(R, G, B);
-    }
-  }
-  else
+  else if (OPERATION_MODE == "breathing")
   {
     double factor = double(val) / double(maxVal);
 
@@ -815,6 +808,13 @@ void loop()
     if (val == base || val == (maxVal))
     {
       increment *= -1;
+    }
+  }
+  else
+  {
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+      leds[i] = CRGB(R, G, B);
     }
   }
 
