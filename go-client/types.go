@@ -23,6 +23,7 @@ type ColourRequest struct {
 	Colour     string `json:"colour,omitempty"`
 	Mode       string `json:"mode,omitempty"`
 	Brightness int64  `json:"brightness,omitempty"`
+	Persist    bool   `json:"persist"`
 }
 
 // BreathingResponse gets you how the device
@@ -31,11 +32,14 @@ type BreathingResponse struct {
 	Speed int64 `json:"speed,omitempty"`
 }
 
-type BreathingRequest BreathingResponse
+type BreathingRequest struct {
+	BreathingResponse
+	Persist bool `json:"persist"`
+}
 
-func (c *BreathingRequest) ToBreathingRequest() *BreathingRequest {
+func (b *BreathingResponse) ToBreathingRequest() *BreathingRequest {
 	return &BreathingRequest{
-		Speed: c.Speed,
+		BreathingResponse: *b,
 	}
 }
 
@@ -48,13 +52,15 @@ type ChaseResponse struct {
 	Length    int64 `json:"length,omitempty"`
 }
 
-type ChaseRequest ChaseResponse
+type ChaseRequest struct {
+	ChaseResponse
+	Persist bool `json:"persist"`
+}
 
 func (c *ChaseResponse) ToChaseRequest() *ChaseRequest {
 	return &ChaseRequest{
-		Speed:     c.Speed,
-		Length:    c.Length,
-		Direction: c.Direction,
+		ChaseResponse: *c,
+		Persist:       false,
 	}
 }
 
