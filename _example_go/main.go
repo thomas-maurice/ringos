@@ -29,6 +29,18 @@ func main() {
 		panic(err)
 	}
 
+	scanned, err := client.ScanNetworks()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(scanned)
+
+	known, err := client.KnownNetworks()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(known)
+
 	status, err := client.Status()
 	if err != nil {
 		panic(err)
@@ -88,8 +100,32 @@ func main() {
 
 	time.Sleep(5 * time.Second)
 
+	// makes an other breathing animation
+	newBreathing := &ringo.BreathingRequest{
+		BreathingResponse: ringo.BreathingResponse{
+			Speed: 20,
+		},
+	}
+
+	_, err = client.SetBreathing(newBreathing)
+	if err != nil {
+		panic(err)
+	}
+
+	time.Sleep(5 * time.Second)
+
 	// restores the initial state
 	resp, err := client.SetColour(initialState.ToColourRequest())
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = client.SetChase(chase.ToChaseRequest())
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = client.SetBreathing(breathing.ToBreathingRequest())
 	if err != nil {
 		panic(err)
 	}

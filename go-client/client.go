@@ -178,3 +178,39 @@ func (c *Client) SetBreathing(breathing *BreathingRequest) (*GenericAnswer, erro
 	}
 	return &response, nil
 }
+
+func (c *Client) KnownNetworks() (KnownNetworkList, error) {
+	var knownNetworks KnownNetworkList
+	_, err := c.Get(c.buildURL("api", "net", "list"), &knownNetworks)
+	if err != nil {
+		return nil, err
+	}
+	return knownNetworks, nil
+}
+
+func (c *Client) ScanNetworks() (ScannedNetworks, error) {
+	var scannedNetworks ScannedNetworks
+	_, err := c.Get(c.buildURL("api", "net", "scan"), &scannedNetworks)
+	if err != nil {
+		return nil, err
+	}
+	return scannedNetworks, nil
+}
+
+func (c *Client) DeleteNetwork(req DeleteNetworkRequest) (*GenericAnswer, error) {
+	var resp GenericAnswer
+	_, err := c.Post(c.buildURL("api", "net", "del"), &req, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) AddNetwork(req AddNetworkRequest) (*GenericAnswer, error) {
+	var resp GenericAnswer
+	_, err := c.Post(c.buildURL("api", "net", "add"), &req, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}

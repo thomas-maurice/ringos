@@ -1,5 +1,13 @@
 package ringo
 
+const (
+	DIRECTION_CLOCKWISE         = 1
+	DIRECTION_COUNTER_CLOCKWISE = -1
+	MODE_BREATHING              = "breathing"
+	MODE_STATIC                 = "static"
+	MODE_CHASE                  = "chase"
+)
+
 // ColourResponse is the result of a call to the API
 // to get the status of the device colour/mode wise
 type ColourResponse struct {
@@ -94,4 +102,13 @@ type GenericAnswer struct {
 	Message string `json:"message"`
 	Status  string `json:"status"`
 	Error   string `json:"error"`
+}
+
+type KnownNetworkList []string
+
+type DeleteNetworkRequest string
+
+type AddNetworkRequest struct {
+	SSID string `json:"ssid"`
+	PSK  string `json:"psk"`
 }
