@@ -30,14 +30,29 @@ func init() {
 func randomize() (string, *ringo.ColourRequest, interface{}) {
 	colour := rand.Int() % 3
 
-	R := rand.Int() % 256
-	G := rand.Int() % 256
-	B := rand.Int() % 256
+	var R int
+	var G int
+	var B int
 
-	colour := fmt.Sprintf("%02x%02x%02x", R, G, B)
+	switch colour {
+	case 1:
+		R = 255
+		G = rand.Int() % 256
+		B = rand.Int() % 256
+	case 2:
+		R = rand.Int() % 256
+		G = 255
+		B = rand.Int() % 256
+	case 3:
+		R = rand.Int() % 256
+		G = rand.Int() % 256
+		B = 255
+	}
+
+	c := fmt.Sprintf("%02x%02x%02x", R, G, B)
 
 	return "chase", &ringo.ColourRequest{
-		Colour: colour,
+		Colour: c,
 	}, nil
 }
 
