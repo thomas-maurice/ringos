@@ -216,7 +216,7 @@ Eventhough the project works pretty well as is, it has a few limitations
 * Serving the UI can be quite slow, use the API whenever possible
 ## Further plans
 
-- [ ] API documentation
-- [ ] Revamp the API to make it more consistant
+- [x] API documentation
+- [x] Revamp the API to make it more consistant
 - [ ] Make the UI on par with the API
 - [ ] Optional password authentication for the API calls
