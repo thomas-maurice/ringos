@@ -24,7 +24,7 @@ func init() {
 	flag.StringVar(&address, "address", "http://10.99.4.102", "Address of the device")
 	flag.BoolVar(&debug, "debug", false, "Debug mode ?")
 
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UnixNano())
 }
 
 func randomize() (string, *ringo.ColourRequest, interface{}) {
@@ -37,19 +37,21 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 	switch colour {
 	case 1:
 		R = 255
-		G = rand.Int() % 256
-		B = rand.Int() % 256
+		G = rand.Int() % 255
+		B = rand.Int() % 255
 	case 2:
-		R = rand.Int() % 256
+		R = rand.Int() % 255
 		G = 255
-		B = rand.Int() % 256
+		B = rand.Int() % 255
 	case 3:
-		R = rand.Int() % 256
-		G = rand.Int() % 256
+		R = rand.Int() % 255
+		G = rand.Int() % 255
 		B = 255
 	}
 
 	c := fmt.Sprintf("%02x%02x%02x", R, G, B)
+
+	fmt.Println(c)
 
 	return "chase", &ringo.ColourRequest{
 		Colour: c,
