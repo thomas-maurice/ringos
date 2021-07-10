@@ -405,21 +405,6 @@ void setup()
       });
 
   server.on(
-      "/api/brightness", HTTP_GET, [](AsyncWebServerRequest *request)
-      {
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
-        response->setCode(200);
-
-        DynamicJsonDocument jsonBuffer(128);
-        JsonVariant root = jsonBuffer.as<JsonVariant>();
-
-        root["brightness"] = BRIGHTNESS;
-        serializeJson(jsonBuffer, *response);
-
-        request->send(response);
-      });
-
-  server.on(
       "/api/net/scan", HTTP_GET, [](AsyncWebServerRequest *request)
       {
         String json = "[";
