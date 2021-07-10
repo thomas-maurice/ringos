@@ -161,6 +161,16 @@ Adds a new network. Payload:
 }
 ```
 
+### `GET /api/net/list`
+List the SSID of the saved networks. It obviously does not return the associated PSK
+
+```json
+[
+  "a network",
+  "another network"
+]
+```
+
 ### `POST /api/net/reset`
 Wipes the entirety of the network config.
 
@@ -170,6 +180,8 @@ Payload:
   "reset": true
 }
 ```
+
+Set `reset` if you are sure of what you are doing. It will take effect after a reboot.
 
 ### `GET /api/ping`
 Ping
@@ -187,18 +199,6 @@ Response:
 {
   "data": "yo"
 }
-```
-
-Set `reset` if you are sure of what you are doing. It will take effect after a reboot.
-
-### `GET /api/net/list`
-List the SSID of the saved networks. It obviously does not return the associated PSK
-
-```json
-[
-  "a network",
-  "another network"
-]
 ```
 
 ### `POST /api/reboot`
