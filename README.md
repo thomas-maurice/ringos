@@ -115,7 +115,7 @@ Gets the status of the breathing animation
 
 ```json
 {
-  "breathing": 1
+  "speed": 1
 }
 ```
 
