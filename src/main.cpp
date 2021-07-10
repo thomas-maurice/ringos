@@ -21,44 +21,68 @@
 /* Chip specific settings */
 // LED pin for blinking purposes
 #define LED_PIN LED_BUILTIN
-// Color order for FastLED
-#define COLOR_ORDER GRB
+
+// Colour order for FastLED
+#define COLOUR_ORDER GRB
+
 // Chipset for FastLED
 #define CHIPSET WS2812B
-// Number of LEDs on the ring/strip
-#define NUM_LEDS 30
+
+// Maximum number of LEDs this firmware will
+// manage, the actual number of LEDs can be
+// adjusted changing the NUM_LEDS variable.
+// To save on ram lower this since they
+// will be allocated even if not used
+#define MAX_NUM_LEDS 120
+#define DEFAULT_NUM_LEDS 24
+
 // Pin onto which the ring/strip is plugged
 #define SIG_LED D3
 
 /* Some default parameters */
 // Default LED brightness
 #define DEFAULT_BRIGHTNESS 100
+
 // Default operation mode
 // Can be any of:
 // * chase
 // * static
 // * breathing
 #define DEFAULT_OPERATION_MODE "chase"
+
 // Number of times per second FastLED is updated
 // Higher numers tend to result in poorer performance
 #define FRAMES_PER_SECOND 30
 
 // Default chase speed, lower is wuicker
 #define DEFAULT_CHASE_SPEED 3
+
 // Default chase direction 1 is clockwise
 #define DEFAULT_CHASE_DIRECTION 1
 
+// Default breathing speed
+#define DEFAULT_BREATHING_SPEED 10
+
 /* Resets the chip (effectively a soft reboot) */
 void (*softReset)(void) = 0;
+
+/* Variables to control reboot */
+// Has a reboot order been issued ?
+bool ASKED_FOR_REBOOT = false;
+// In how many seconds the reboot will happen ?
+// this is mostly so the api client gets the
+// full replies before the connexion resets
+long REBOOT_TICKS = 3 * FRAMES_PER_SECOND;
 
 AsyncWebServer server(80);
 ESP8266WiFiMulti wifiMulti;
 DNSServer dnsServer;
 
-/* Global variables to manage the brightness and color modes */
+/* Global variables to manage the brightness and colour modes */
 int R = 0;
 int G = 0;
 int B = 0;
+int NUM_LEDS = MAX_NUM_LEDS;
 int BRIGHTNESS = DEFAULT_BRIGHTNESS;
 String OPERATION_MODE = DEFAULT_OPERATION_MODE;
 
@@ -69,8 +93,13 @@ int chaseLeadPosition = 0;
 int chaseDirection = -1;
 int chaseTrailLength = NUM_LEDS - 1;
 
+/* variables related to the breathing animation */
+int breathingIncrement = 20;
+int maxBreathingVal = 255;
+int breathingValue = 0;
+
 /* Representation of the LEDs stip/ring */
-CRGB leds[NUM_LEDS];
+CRGB leds[MAX_NUM_LEDS];
 
 // Returns the WiFi status in a more human readable form
 String getWiFiStatus()
@@ -98,13 +127,13 @@ String getWiFiStatus()
   }
 }
 
-// Reads the color from the configuration
-int readColor(String color)
+// Reads the colour from the configuration
+int readColour(String colour)
 {
-  String c = readFile("/config/" + color, 16);
-  int intColor;
-  sscanf(c.c_str(), "%d", &intColor);
-  return intColor;
+  String c = readFile("/config/" + colour, 16);
+  int intColour;
+  sscanf(c.c_str(), "%d", &intColour);
+  return intColour;
 }
 
 String readMode()
@@ -122,22 +151,22 @@ void saveBrightness(int value)
 int readBrightness()
 {
   String c = readFile("/config/brightness", 16);
-  int intColor;
-  sscanf(c.c_str(), "%d", &intColor);
-  if (intColor < 0 || intColor > 255)
+  int intColour;
+  sscanf(c.c_str(), "%d", &intColour);
+  if (intColour < 0 || intColour > 255)
   {
     saveBrightness(DEFAULT_BRIGHTNESS);
     Serial.println(PSTR("saving default brightness because of an invalid value"));
     return DEFAULT_BRIGHTNESS;
   }
-  return intColor;
+  return intColour;
 }
 
-void saveColor(String color, int value)
+void saveColour(String colour, int value)
 {
-  char stringColor[16];
-  sprintf(stringColor, "%d", value);
-  writeFile("/config/" + color, stringColor);
+  char stringColour[16];
+  sprintf(stringColour, "%d", value);
+  writeFile("/config/" + colour, stringColour);
 }
 
 void setup()
@@ -154,7 +183,12 @@ void setup()
 
   digitalWrite(LED_PIN, HIGH);
 
-  FastLED.addLeds<CHIPSET, SIG_LED, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
+  NUM_LEDS = readIntFile("/config/leds", 16);
+  if (NUM_LEDS == 0)
+  {
+    NUM_LEDS = DEFAULT_NUM_LEDS;
+  }
+  FastLED.addLeds<CHIPSET, SIG_LED, COLOUR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
 
   BRIGHTNESS = readBrightness();
   chaseSpeed = readIntFile("/config/chase/speed", 16);
@@ -176,6 +210,11 @@ void setup()
   if (OPERATION_MODE == "")
   {
     OPERATION_MODE = DEFAULT_OPERATION_MODE;
+  }
+  breathingIncrement = readIntFile("/config/breathing/speed", 16);
+  if (breathingIncrement == 0)
+  {
+    breathingIncrement = DEFAULT_BREATHING_SPEED;
   }
 
   FastLED.setBrightness(BRIGHTNESS);
@@ -211,8 +250,8 @@ void setup()
   Serial.println("adding known wifi networks to wifiMulti");
   for (JsonVariant network : wifiConfig.as<JsonArray>())
   {
-    wifiMulti.addAP(network["ssid"].as<char *>(), network["psk"].as<char *>());
-    Serial.printf("  * %s : %s\n", network["ssid"].as<char *>(), network["psk"].as<char *>());
+    wifiMulti.addAP(network["ssid"].as<const char *>(), network["psk"].as<const char *>());
+    Serial.printf("  * %s : %s\n", network["ssid"].as<const char *>(), network["psk"].as<const char *>());
   }
 
   WiFi.hostname(getHostname());
@@ -249,10 +288,12 @@ void setup()
     Serial.println(WiFi.macAddress());
   }
 
-  R = readColor("R");
-  G = readColor("G");
-  B = readColor("B");
+  R = readColour("R");
+  G = readColour("G");
+  B = readColour("B");
 
+  Serial.printf("LEDs:\t%d\n", NUM_LEDS);
+  Serial.printf("MAX LEDs:\t%d\n", MAX_NUM_LEDS);
   Serial.printf("colours:\tR:%d G:%d B:%d\n", R, G, B);
   Serial.printf("brightness:\t%d\n", readBrightness());
   Serial.printf("chase trail:\t%d\n", chaseTrailLength);
@@ -264,17 +305,6 @@ void setup()
   initMDNS();
 
   digitalWrite(SIG_LED, HIGH);
-
-  server.on(
-      "/api/reboot", HTTP_GET, [](AsyncWebServerRequest *request)
-      {
-        Serial.println("asked to reboot via the API");
-        request->send(200, "application/json", "{\"status\": \"ok\"}");
-        server.end();
-        Serial.println("rebooting, bye");
-        delay(1000);
-        softReset();
-      });
 
   server.on(
       "/version", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -323,57 +353,22 @@ void setup()
       });
 
   server.on(
-      "/api/config", HTTP_POST, [](AsyncWebServerRequest *request)
+      "/api/colour", HTTP_GET, [](AsyncWebServerRequest *request)
       {
-        AsyncWebParameter *hostname;
-
-        if (request->hasParam("name", true))
-          hostname = request->getParam("name", true);
-        else
-        {
-          AsyncWebServerResponse *response = request->beginResponse(400, "text/plain", "missing parameter 'name'");
-          response->addHeader("refresh", "2;url=/");
-          request->send(response);
-          return;
-        }
-
-        writeFile("/config/hostname", hostname->value());
-
-        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "configuration successfully updated");
-        response->addHeader("refresh", "1;url=/");
-        request->send(response);
-      });
-
-  server.on(
-      "/api/color", HTTP_GET, [](AsyncWebServerRequest *request)
-      {
-        char color[7];
-        sprintf(color, "%02X%02X%02X", R, G, B);
+        char colour[7];
+        sprintf(colour, "%02X%02X%02X", R, G, B);
 
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
 
-        DynamicJsonDocument jsonBuffer(128);
+        DynamicJsonDocument jsonBuffer(256);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
 
-        root["color"] = color;
+        root["colour"] = colour;
         root["R"] = R;
         root["G"] = G;
         root["B"] = B;
-        serializeJson(jsonBuffer, *response);
-
-        request->send(response);
-      });
-
-  server.on(
-      "/api/mode", HTTP_GET, [](AsyncWebServerRequest *request)
-      {
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
-        response->setCode(200);
-
-        DynamicJsonDocument jsonBuffer(128);
-        JsonVariant root = jsonBuffer.as<JsonVariant>();
-
+        root["brightness"] = BRIGHTNESS;
         root["mode"] = OPERATION_MODE;
         serializeJson(jsonBuffer, *response);
 
@@ -386,87 +381,19 @@ void setup()
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
 
-        DynamicJsonDocument jsonBuffer(128);
+        DynamicJsonDocument jsonBuffer(256);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
 
         root["speed"] = chaseSpeed;
         root["direction"] = chaseDirection;
+        root["length"] = chaseTrailLength;
         serializeJson(jsonBuffer, *response);
 
         request->send(response);
       });
 
-  AsyncCallbackJsonWebHandler *colorModeHandler = new AsyncCallbackJsonWebHandler(
-      "/api/mode", [](AsyncWebServerRequest *request, JsonVariant &json)
-      {
-        if (json["mode"] != nullptr)
-        {
-          String mode = json["mode"].as<String>();
-          if (mode == "chase" || mode == "static" || mode == "breathing")
-          {
-            writeFile("/config/mode", mode);
-            OPERATION_MODE = mode;
-            return jsonSuccess(request, 200, "changed operation mode");
-          }
-          else
-          {
-            return jsonError(request, 400, "invalid mode " + mode);
-          }
-        }
-
-        return jsonError(request, 400, "you must set 'mode'");
-      });
-
-  AsyncCallbackJsonWebHandler *brightnessSetHandler = new AsyncCallbackJsonWebHandler(
-      "/api/brightness", [](AsyncWebServerRequest *request, JsonVariant &json)
-      {
-        if (json["brightness"] != nullptr)
-        {
-          int brightness = json["brightness"].as<int>();
-          if (brightness < 0 || brightness > 255)
-          {
-            return jsonError(request, 400, "you must set 'brightness' to a correct value");
-          }
-          if (isPersist(json))
-          {
-            saveBrightness(brightness);
-          }
-          BRIGHTNESS = brightness;
-          return jsonSuccess(request, 200, "changed brightness");
-        }
-
-        return jsonError(request, 400, "you must set 'brightness'");
-      });
-
-  AsyncCallbackJsonWebHandler *colorSetHandler = new AsyncCallbackJsonWebHandler(
-      "/api/color", [](AsyncWebServerRequest *request, JsonVariant &json)
-      {
-        if (json["color"] != nullptr)
-        {
-          String color = json["color"].as<String>();
-
-          Serial.printf("new color: %s\n", color.c_str());
-
-          R = (int)strtol(color.substring(0, 2).c_str(), NULL, 16);
-          G = (int)strtol(color.substring(2, 4).c_str(), NULL, 16);
-          B = (int)strtol(color.substring(4, 6).c_str(), NULL, 16);
-
-          if (isPersist(json))
-          {
-            saveColor("R", R);
-            saveColor("G", G);
-            saveColor("B", B);
-          }
-
-          Serial.printf("R:%d G:%d B:%d\n", R, G, B);
-          return jsonSuccess(request, 200, "changed color");
-        }
-
-        return jsonError(request, 400, "you must set 'color'");
-      });
-
   server.on(
-      "/api/brightness", HTTP_GET, [](AsyncWebServerRequest *request)
+      "/api/breathing", HTTP_GET, [](AsyncWebServerRequest *request)
       {
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
@@ -474,7 +401,22 @@ void setup()
         DynamicJsonDocument jsonBuffer(128);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
 
-        root["brightness"] = BRIGHTNESS;
+        root["speed"] = breathingIncrement;
+        serializeJson(jsonBuffer, *response);
+
+        request->send(response);
+      });
+
+  server.on(
+      "/api/ping", HTTP_GET, [](AsyncWebServerRequest *request)
+      {
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        response->setCode(200);
+
+        DynamicJsonDocument jsonBuffer(64);
+        JsonVariant root = jsonBuffer.as<JsonVariant>();
+
+        root["ping"] = "pong";
         serializeJson(jsonBuffer, *response);
 
         request->send(response);
@@ -626,8 +568,6 @@ void setup()
           return jsonError(request, 500, err.c_str());
         }
 
-        bool isNewNetwork = true;
-
         for (JsonArray::iterator network = config.as<JsonArray>().begin(); network != config.as<JsonArray>().end(); ++network)
         {
           if ((*network)["ssid"].as<String>().equals(json["ssid"].as<String>()))
@@ -669,31 +609,25 @@ void setup()
         return jsonError(request, 400, "you must set 'reset to true'");
       });
 
-  AsyncCallbackJsonWebHandler *chaseSpeedSetHandler = new AsyncCallbackJsonWebHandler(
-      "/api/chase/speed", [](AsyncWebServerRequest *request, JsonVariant &json)
+  AsyncCallbackJsonWebHandler *chaseSetHandler = new AsyncCallbackJsonWebHandler(
+      "/api/chase", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
-        if (json["speed"] != nullptr)
+        bool persist = isPersist(json);
+        if (json["direction"] != nullptr)
         {
-          int speed = json["speed"].as<int>();
-          if (speed < 1 || speed > 10)
+          int d = json["direction"].as<int>();
+          if (d != 1 && d != -1)
           {
-            return jsonError(request, 400, "speed should be between 1 and 10");
+            return jsonError(request, 400, "direction should be 1 or -1");
           }
-          chaseSpeed = speed;
-          if (isPersist(json))
+          chaseDirection = d;
+          if (persist)
           {
-            writeIntFile("/config/chase/speed", speed);
+            writeIntFile("/config/chase/direction", d);
           }
-          Serial.printf("chase speed set to %d\n", speed);
-          return jsonSuccess(request, 200, "successfully changed chase speed");
+          Serial.printf("chase direction set to %d\n", d);
         }
 
-        return jsonError(request, 400, "you must set 'speed' 1 <> 10");
-      });
-
-  AsyncCallbackJsonWebHandler *chaseTrailSetHandler = new AsyncCallbackJsonWebHandler(
-      "/api/chase/trail", [](AsyncWebServerRequest *request, JsonVariant &json)
-      {
         if (json["length"] != nullptr)
         {
           int length = json["length"].as<int>();
@@ -702,37 +636,151 @@ void setup()
             return jsonError(request, 400, "length should be between 0 and NUM_LEDS");
           }
           chaseTrailLength = length;
-          if (isPersist(json))
+          if (persist)
           {
             writeIntFile("/config/chase/trail", length);
           }
           Serial.printf("chase trail set to %d\n", length);
-          return jsonSuccess(request, 200, "successfully changed chase trail length");
         }
 
-        return jsonError(request, 400, "you must set 'length'");
+        if (json["speed"] != nullptr)
+        {
+          int speed = json["speed"].as<int>();
+          if (speed < 1 || speed > 10)
+          {
+            return jsonError(request, 400, "speed should be between 1 and 10");
+          }
+          chaseSpeed = speed;
+          if (persist)
+          {
+            writeIntFile("/config/chase/speed", speed);
+          }
+          Serial.printf("chase speed set to %d\n", speed);
+        }
+
+        return jsonSuccess(request, 200, "successfully changed chase configuration");
       });
 
-  AsyncCallbackJsonWebHandler *chaseDirectionSetHandler = new AsyncCallbackJsonWebHandler(
-      "/api/chase/direction", [](AsyncWebServerRequest *request, JsonVariant &json)
+  AsyncCallbackJsonWebHandler *breathingSetHandler = new AsyncCallbackJsonWebHandler(
+      "/api/breathing", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
-        if (json["direction"] != nullptr)
+        bool persist = isPersist(json);
+        if (json["speed"] != nullptr)
         {
-          int d = json["direction"].as<int>();
-          if (d != 1 && d != -1)
+          int speed = json["speed"].as<int>();
+          if (speed < 1 || speed > 40)
           {
-            return jsonError(request, 400, "speed should be 1 or -1");
+            return jsonError(request, 400, "speed should be between 1 and 40");
           }
-          chaseDirection = d;
-          if (isPersist(json))
+          breathingIncrement = speed;
+          if (persist)
           {
-            writeIntFile("/config/chase/direction", d);
+            writeIntFile("/config/breathing/speed", speed);
           }
-          Serial.printf("chase direction set to %d\n", d);
-          return jsonSuccess(request, 200, "successfully changed chase direction");
+          Serial.printf("breathing speed set to %d\n", speed);
         }
 
-        return jsonError(request, 400, "you must set 'direction' 1 or -1");
+        return jsonSuccess(request, 200, "successfully changed chase configuration");
+      });
+
+  AsyncCallbackJsonWebHandler *colourSetHandler = new AsyncCallbackJsonWebHandler(
+      "/api/colour", [](AsyncWebServerRequest *request, JsonVariant &json)
+      {
+        bool persist = isPersist(json);
+
+        if (json["colour"] != nullptr)
+        {
+          String colour = json["colour"].as<String>();
+
+          Serial.printf("new colour: %s\n", colour.c_str());
+
+          R = (int)strtol(colour.substring(0, 2).c_str(), NULL, 16);
+          G = (int)strtol(colour.substring(2, 4).c_str(), NULL, 16);
+          B = (int)strtol(colour.substring(4, 6).c_str(), NULL, 16);
+
+          if (persist)
+          {
+            saveColour("R", R);
+            saveColour("G", G);
+            saveColour("B", B);
+          }
+
+          Serial.printf("R:%d G:%d B:%d\n", R, G, B);
+        }
+
+        if (json["brightness"] != nullptr)
+        {
+          int brightness = json["brightness"].as<int>();
+          if (brightness < 0 || brightness > 256)
+          {
+            return jsonError(request, 400, "you must set 'brightness' to a correct value");
+          }
+          if (persist)
+          {
+            saveBrightness(brightness);
+          }
+          BRIGHTNESS = brightness;
+        }
+
+        if (json["mode"] != nullptr)
+        {
+          String mode = json["mode"].as<String>();
+          if (mode == "chase" || mode == "static" || mode == "breathing")
+          {
+            if (persist)
+            {
+              writeFile("/config/mode", mode);
+            }
+            OPERATION_MODE = mode;
+          }
+          else
+          {
+            return jsonError(request, 400, "invalid mode " + mode);
+          }
+        }
+
+        return jsonSuccess(request, 200, "successfully changed colour mode");
+      });
+
+  AsyncCallbackJsonWebHandler *systemSetHandler = new AsyncCallbackJsonWebHandler(
+      "/api/system", [](AsyncWebServerRequest *request, JsonVariant &json)
+      {
+        if (json["num_leds"] != nullptr)
+        {
+          int num_leds = json["num_leds"].as<int>();
+          if (num_leds < 0 || num_leds > MAX_NUM_LEDS)
+          {
+            return jsonError(request, 400, "you must set 'num_leds' to a correct value");
+          }
+          writeIntFile("/config/leds", num_leds);
+        }
+
+        if (json["hostname"] != nullptr)
+        {
+          String hostname = json["hostname"].as<String>();
+          writeFile("/config/hostname", hostname);
+        }
+
+        return jsonSuccess(request, 200, "successfully changed system infos, you'll need a reboot");
+      });
+
+  AsyncCallbackJsonWebHandler *rebootHandler = new AsyncCallbackJsonWebHandler(
+      "/api/reboot", [](AsyncWebServerRequest *request, JsonVariant &json)
+      {
+        if (json["reboot"] != nullptr)
+        {
+          bool reboot = json["reboot"].as<bool>();
+          if (reboot)
+          {
+            ASKED_FOR_REBOOT = true;
+          }
+          else
+          {
+            return jsonSuccess(request, 200, "no 'reboot' field, no reboot");
+          }
+        }
+
+        return jsonSuccess(request, 200, "asked for a reboot");
       });
 
   server.addHandler(pingHandler);
@@ -740,13 +788,12 @@ void setup()
   server.addHandler(networkDelHandler);
   server.addHandler(networkResetHandler);
 
-  server.addHandler(brightnessSetHandler);
-  server.addHandler(colorModeHandler);
-  server.addHandler(colorSetHandler);
-
-  server.addHandler(chaseSpeedSetHandler);
-  server.addHandler(chaseDirectionSetHandler);
-  server.addHandler(chaseTrailSetHandler);
+  server.addHandler(colourSetHandler);
+  server.addHandler(systemSetHandler);
+  server.addHandler(chaseSetHandler);
+  server.addHandler(breathingSetHandler);
+  server.addHandler(rebootHandler);
+  server.addHandler(pingHandler);
 
   server.serveStatic("/index.html", LittleFS, "/static/index.html");
   server.serveStatic("/bootstrap.js", LittleFS, "/static/bootstrap.js").setCacheControl("max-age=3600");
@@ -760,12 +807,6 @@ void setup()
 
   WiFi.scanNetworks(true);
 }
-
-// TODO: make the variables names more sensible
-int increment = 1;
-int base = 0;
-int maxVal = 255;
-int val = base;
 
 void loop()
 {
@@ -797,21 +838,14 @@ void loop()
       }
     }
     chasePauseCounter = (chasePauseCounter + 1) % chaseSpeed;
-    FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
   }
-  else if (OPERATION_MODE == "static")
+  else if (OPERATION_MODE == "breathing")
   {
-    for (int i = 0; i < NUM_LEDS; i++)
-    {
-      leds[i] = CRGB(R, G, B);
-    }
-    FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
-  }
-  else
-  {
-    double factor = double(val) / double(maxVal);
+    if (breathingValue >= 255)
+      breathingValue = 255;
+    if (breathingValue <= 0)
+      breathingValue = 0;
+    double factor = double(breathingValue) / double(maxBreathingVal);
 
     int r = (int)map(R * factor, 0, 256, 0, 230);
     int g = (int)map(G * factor, 0, 256, 0, 230);
@@ -821,12 +855,30 @@ void loop()
     {
       leds[i] = CRGB(r, g, b);
     }
-    FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
-    val += increment;
-    if (val == base || val == (maxVal))
+
+    breathingValue += breathingIncrement;
+    if (breathingValue <= 0 || breathingValue >= (maxBreathingVal))
     {
-      increment *= -1;
+      breathingIncrement *= -1;
+    }
+  }
+  else
+  {
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+      leds[i] = CRGB(R, G, B);
+    }
+  }
+
+  FastLED.show();
+  FastLED.delay(1000 / FRAMES_PER_SECOND);
+
+  if (ASKED_FOR_REBOOT)
+  {
+    REBOOT_TICKS--;
+    if (REBOOT_TICKS <= 0)
+    {
+      softReset();
     }
   }
 }
