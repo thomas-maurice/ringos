@@ -1,0 +1,124 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"math/rand"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	ringo "github.com/thomas-maurice/ringos/go-client"
+)
+
+var (
+	address string
+	debug   bool
+)
+
+func init() {
+	flag.StringVar(&address, "address", "http://10.99.4.102", "Address of the device")
+	flag.BoolVar(&debug, "debug", false, "Debug mode ?")
+
+	rand.Seed(time.Now().Unix())
+}
+
+func randomize() (string, *ringo.ColourRequest, interface{}) {
+	R := rand.Int() % 256
+	G := rand.Int() % 256
+	B := rand.Int() % 256
+
+	colour := fmt.Sprintf("%02x%02x%02x", R, G, B)
+
+	return "chase", &ringo.ColourRequest{
+		Colour: colour,
+	}, nil
+}
+
+func main() {
+	flag.Parse()
+
+	// Gets a client
+	client, err := ringo.NewClient(&ringo.ClientConfig{
+		TargetAddress: address,
+		Debug:         debug,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	tckr := time.NewTicker(time.Duration(time.Second * 2))
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
+
+	// get the base configs
+	baseColour, err := client.Colour()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(baseColour)
+
+	// Gets the current chase config
+	baseChase, err := client.Chase()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(baseChase)
+
+	// Gets the current breathing config
+	baseBreathing, err := client.Breathing()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(baseBreathing)
+
+	for {
+		select {
+		case <-tckr.C:
+			action, colour, data := randomize()
+			switch action {
+			case "static":
+				break
+			case "breathing":
+				break
+			case "chase":
+				_, err := client.SetColour(colour)
+				if err != nil {
+					panic(err)
+				}
+				if data != nil {
+					chaseData, ok := data.(*ringo.ChaseRequest)
+					if !ok {
+						fmt.Println("could not cast data to chase")
+						return
+					}
+					_, err = client.SetChase(chaseData)
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
+			break
+		case <-signalChan:
+			goto endOfLoop
+		}
+	}
+endOfLoop:
+	_, err = client.SetColour(baseColour.ToColourRequest())
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = client.SetChase(baseChase.ToChaseRequest())
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = client.SetBreathing(baseBreathing.ToBreathingRequest())
+	if err != nil {
+		panic(err)
+	}
+}
