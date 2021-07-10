@@ -343,28 +343,6 @@ void setup()
       });
 
   server.on(
-      "/api/config", HTTP_POST, [](AsyncWebServerRequest *request)
-      {
-        AsyncWebParameter *hostname;
-
-        if (request->hasParam("name", true))
-          hostname = request->getParam("name", true);
-        else
-        {
-          AsyncWebServerResponse *response = request->beginResponse(400, "text/plain", "missing parameter 'name'");
-          response->addHeader("refresh", "2;url=/");
-          request->send(response);
-          return;
-        }
-
-        writeFile("/config/hostname", hostname->value());
-
-        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "configuration successfully updated");
-        response->addHeader("refresh", "1;url=/");
-        request->send(response);
-      });
-
-  server.on(
       "/api/colour", HTTP_GET, [](AsyncWebServerRequest *request)
       {
         char colour[7];
@@ -705,8 +683,6 @@ void setup()
     AsyncCallbackJsonWebHandler *systemSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/system", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
-        bool persist = isPersist(json);
-
         if (json["num_leds"] != nullptr)
         {
           int num_leds = json["num_leds"].as<int>();
@@ -714,10 +690,13 @@ void setup()
           {
             return jsonError(request, 400, "you must set 'num_leds' to a correct value");
           }
-          if (persist)
-          {
-            writeIntFile("/config/leds", num_leds);
-          }
+          writeIntFile("/config/leds", num_leds);
+        }
+
+        if (json["hostname"] != nullptr)
+        {
+          String hostname = json["hostname"].as<String>();
+          writeFile("/config/hostname", hostname);
         }
 
         return jsonSuccess(request, 200, "successfully changed system infos, you'll need a reboot");
