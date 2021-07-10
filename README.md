@@ -108,7 +108,7 @@ Configures the breathing mode, like so
 }
 ```
 
-* `speed` is between `1-20`, higher is faster
+* `speed` is between `1-40`, higher is faster
 
 ### `GET /api/breathing`
 Gets the status of the breathing animation
