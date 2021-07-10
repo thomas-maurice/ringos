@@ -201,7 +201,14 @@ List the SSID of the saved networks. It obviously does not return the associated
 ]
 ```
 
+### `POST /api/reboot`
+Reboots the device
 
+```json
+{
+  "reboot": true
+}
+```
 ## Limitations
 Eventhough the project works pretty well as is, it has a few limitations
 
