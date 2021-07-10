@@ -21,30 +21,42 @@
 /* Chip specific settings */
 // LED pin for blinking purposes
 #define LED_PIN LED_BUILTIN
+
 // Colour order for FastLED
 #define COLOUR_ORDER GRB
+
 // Chipset for FastLED
 #define CHIPSET WS2812B
-// Number of LEDs on the ring/strip
-#define NUM_LEDS 30
+
+// Maximum number of LEDs this firmware will
+// manage, the actual number of LEDs can be
+// adjusted changing the NUM_LEDS variable.
+// To save on ram lower this since they
+// will be allocated even if not used
+#define MAX_NUM_LEDS 120
+#define DEFAULT_NUM_LEDS 24
+
 // Pin onto which the ring/strip is plugged
 #define SIG_LED D3
 
 /* Some default parameters */
 // Default LED brightness
 #define DEFAULT_BRIGHTNESS 100
+
 // Default operation mode
 // Can be any of:
 // * chase
 // * static
 // * breathing
 #define DEFAULT_OPERATION_MODE "chase"
+
 // Number of times per second FastLED is updated
 // Higher numers tend to result in poorer performance
 #define FRAMES_PER_SECOND 30
 
 // Default chase speed, lower is wuicker
 #define DEFAULT_CHASE_SPEED 3
+
 // Default chase direction 1 is clockwise
 #define DEFAULT_CHASE_DIRECTION 1
 
@@ -59,6 +71,7 @@ DNSServer dnsServer;
 int R = 0;
 int G = 0;
 int B = 0;
+int NUM_LEDS = MAX_NUM_LEDS;
 int BRIGHTNESS = DEFAULT_BRIGHTNESS;
 String OPERATION_MODE = DEFAULT_OPERATION_MODE;
 
@@ -70,7 +83,7 @@ int chaseDirection = -1;
 int chaseTrailLength = NUM_LEDS - 1;
 
 /* Representation of the LEDs stip/ring */
-CRGB leds[NUM_LEDS];
+CRGB leds[MAX_NUM_LEDS];
 
 // Returns the WiFi status in a more human readable form
 String getWiFiStatus()
@@ -154,6 +167,11 @@ void setup()
 
   digitalWrite(LED_PIN, HIGH);
 
+  NUM_LEDS = readIntFile("/config/leds", 16);
+  if (NUM_LEDS == 0)
+  {
+    NUM_LEDS = DEFAULT_NUM_LEDS;
+  }
   FastLED.addLeds<CHIPSET, SIG_LED, COLOUR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
 
   BRIGHTNESS = readBrightness();
@@ -253,6 +271,8 @@ void setup()
   G = readColour("G");
   B = readColour("B");
 
+  Serial.printf("LEDs:\t%d\n", NUM_LEDS);
+  Serial.printf("MAX LEDs:\t%d\n", MAX_NUM_LEDS);
   Serial.printf("colours:\tR:%d G:%d B:%d\n", R, G, B);
   Serial.printf("brightness:\t%d\n", readBrightness());
   Serial.printf("chase trail:\t%d\n", chaseTrailLength);
