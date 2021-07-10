@@ -265,10 +265,17 @@
             setInterval(updateConfigTab, 600000);
             $("#reboot_button").click(function () {
                 $.notify("Asking the device to reboot", "info");
-                $.getJSON("/api/reboot", function (data) {
-                    $.notify("Asked to the device to reboot", "success");
+                $.ajax({
+                    url: "api/reboot",
+                    type: "POST",
+                    data: JSON.stringify({ reboot: true }),
+                    dataType: "json",
+                    contentType: "application/json",
+                    success: function () {
+                        $.notify("ashed for a reboot", "success");
+                    }
                 }).fail(function (jqxhr, textStatus, error) {
-                    //$.notify("Failed to reboot the device: " + textStatus, "error");
+                    $.notify("coluld not ask for a reboot: " + textStatus, "error");
                 });
             });
             $("#toggle_led_button").click(function () {
