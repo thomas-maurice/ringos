@@ -37,7 +37,9 @@ var (
 )
 
 func init() {
-	flag.StringVar(&address, "address", "http://10.99.4.102", "Address of the device")
+	host := os.Getenv("RINGOS_HOST")
+
+	flag.StringVar(&address, "address", host, "Address of the device, or RINGOS_ADDRESS var")
 	flag.BoolVar(&debug, "debug", false, "Debug mode ?")
 	flag.BoolVar(&changeDirection, "chg-dir", false, "Randomly change direction ?")
 
@@ -99,6 +101,10 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 
 func main() {
 	flag.Parse()
+
+	if address == "" {
+		panic("ringos address cannot be empty")
+	}
 
 	// Gets a client
 	client, err := ringo.NewClient(&ringo.ClientConfig{
