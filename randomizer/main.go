@@ -166,11 +166,11 @@ func main() {
 			case "chase":
 				if colour != nil {
 					_, err := client.SetColour(colour)
+					fmt.Println(jsonise(colour))
 					if err != nil {
 						panic(err)
 					}
 				}
-				fmt.Println(jsonise(colour))
 			}
 		case <-signalChan:
 			goto endOfLoop
