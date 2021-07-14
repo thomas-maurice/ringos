@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -55,19 +56,21 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 	var chase ringo.ChaseRequest
 	var clr *ringo.ColourRequest
 
+	baseOffset := 50
+
 	switch colour {
 	case 0:
-		R = int(rand.Int()%128) + 128
+		R = baseOffset + rand.Int()%(255-baseOffset)
 		G = rand.Int() % 255
 		B = rand.Int() % 255
 	case 1:
 		R = rand.Int() % 255
-		G = int(rand.Int()%128) + 128
+		G = baseOffset + rand.Int()%(255-baseOffset)
 		B = rand.Int() % 255
 	case 2:
 		R = rand.Int() % 255
 		G = rand.Int() % 255
-		B = int(rand.Int()%128) + 128
+		B = baseOffset + rand.Int()%(255-baseOffset)
 	}
 
 	c := fmt.Sprintf("%02x%02x%02x", R, G, B)
@@ -99,6 +102,15 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 	return "chase", clr, &chase
 }
 
+func jsonise(i interface{}) string {
+	b, err := json.Marshal(i)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(b)
+}
+
 func main() {
 	flag.Parse()
 
@@ -126,26 +138,26 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(baseColour)
+	fmt.Println(jsonise(baseColour))
 
 	// Gets the current chase config
 	baseChase, err := client.Chase()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(baseChase)
+	fmt.Println(jsonise(baseChase))
 
 	// Gets the current breathing config
 	baseBreathing, err := client.Breathing()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(baseBreathing)
+	fmt.Println(jsonise(baseBreathing))
 
 	for {
 		select {
 		case <-tckr.C:
-			action, colour, data := randomize()
+			action, colour, _ := randomize()
 			switch action {
 			case "static":
 				break
@@ -158,19 +170,8 @@ func main() {
 						panic(err)
 					}
 				}
-				if data != nil {
-					chaseData, ok := data.(*ringo.ChaseRequest)
-					if !ok {
-						fmt.Println("could not cast data to chase")
-						return
-					}
-					_, err = client.SetChase(chaseData)
-					if err != nil {
-						panic(err)
-					}
-				}
+				fmt.Println(jsonise(colour))
 			}
-			break
 		case <-signalChan:
 			goto endOfLoop
 		}

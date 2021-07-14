@@ -207,7 +207,7 @@
             $.ajax({
                 url: "api/colour",
                 type: "POST",
-                data: JSON.stringify({ colour: colour, persist: true}),
+                data: JSON.stringify({ colour: colour, persist: true }),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -227,7 +227,7 @@
             $.ajax({
                 url: "api/chase",
                 type: "POST",
-                data: JSON.stringify({ direction: direction, speed: speed, persist: true}),
+                data: JSON.stringify({ direction: direction, speed: speed, persist: true }),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -242,7 +242,7 @@
             $.ajax({
                 url: "api/colour",
                 type: "POST",
-                data: JSON.stringify({ brightness: $('#brightness_range').val(), persist: true}),
+                data: JSON.stringify({ brightness: $('#brightness_range').val(), persist: true }),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -338,7 +338,7 @@
                 <br></br>
                 <h3>Chase animation setting</h3>
                 <label for="chase_speed_range" class="form-label">Chase speed (lower is faster)</label>
-                <input type="range" class="form-range" min="1" max="10" step="1" id="chase_speed_range">
+                <input type="range" class="form-range" min="1" max="20" step="1" id="chase_speed_range">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="switchCCW">
                     <label class="form-check-label" for="switchCCW">Chase counter clockwise</label>

@@ -52,7 +52,7 @@
 
 // Number of times per second FastLED is updated
 // Higher numers tend to result in poorer performance
-#define FRAMES_PER_SECOND 30
+#define FRAMES_PER_SECOND 60
 
 // Default chase speed, lower is wuicker
 #define DEFAULT_CHASE_SPEED 3
@@ -173,6 +173,7 @@ void setup()
 {
   // Start the filesystem
   LittleFS.begin();
+
   // Start the serial port with a decent baudrate
   Serial.begin(115200);
   delay(10);
@@ -646,7 +647,7 @@ void setup()
         if (json["speed"] != nullptr)
         {
           int speed = json["speed"].as<int>();
-          if (speed < 1 || speed > 10)
+          if (speed < 1 || speed > 30)
           {
             return jsonError(request, 400, "speed should be between 1 and 10");
           }
@@ -668,7 +669,7 @@ void setup()
         if (json["speed"] != nullptr)
         {
           int speed = json["speed"].as<int>();
-          if (speed < 1 || speed > 40)
+          if (speed < 1 || speed > 80)
           {
             return jsonError(request, 400, "speed should be between 1 and 40");
           }
