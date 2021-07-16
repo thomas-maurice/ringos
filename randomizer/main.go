@@ -29,8 +29,8 @@ var (
 	ColourChangeMax    = 10
 
 	// Speed random changes
-	SpeedChangeChance = 5
-	SpeedChangeMax    = 10
+	SpeedChangeChance = 15
+	SpeedChangeMax    = 20
 
 	// Direction random changes
 	DirectionChangeChance = 18
@@ -53,7 +53,7 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 	var R int
 	var G int
 	var B int
-	var chase ringo.ChaseRequest
+	var chase *ringo.ChaseRequest
 	var clr *ringo.ColourRequest
 
 	baseOffset := 50
@@ -83,23 +83,27 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 	}
 
 	if rand.Int()%SpeedChangeMax >= SpeedChangeChance {
-		chase.Speed = int64(rand.Int() % 10)
+		if chase == nil {
+			chase = new(ringo.ChaseRequest)
+		}
+		chase.Speed = int64(rand.Int() % 20)
 	}
 
 	if changeDirection && rand.Int()%DirectionMax >= DirectionChangeChance {
+		if chase == nil {
+			chase = new(ringo.ChaseRequest)
+		}
 		switch rand.Int() % 2 {
 		case 1:
 			chase.Direction = 1
-			break
 		case 0:
 			chase.Direction = -1
-			break
 		default:
-			panic("nope")
+			panic("nope nope nope this should not happen wtf the universe is C O    L   L      A P     S    I      N       G        aaaaaaaaaaaaaaaaaaaaaa")
 		}
 	}
 
-	return "chase", clr, &chase
+	return "chase", clr, chase
 }
 
 func jsonise(i interface{}) string {
@@ -157,16 +161,24 @@ func main() {
 	for {
 		select {
 		case <-tckr.C:
-			action, colour, _ := randomize()
+			action, colour, data := randomize()
 			switch action {
 			case "static":
 				break
 			case "breathing":
 				break
 			case "chase":
+				req, ok := data.(*ringo.ChaseRequest)
+				if req != nil && ok {
+					fmt.Println("chase mode change request -> ", jsonise(req))
+					_, err := client.SetChase(req)
+					if err != nil {
+						panic(err)
+					}
+				}
 				if colour != nil {
+					fmt.Println("colour chgange request -> ", jsonise(colour))
 					_, err := client.SetColour(colour)
-					fmt.Println(jsonise(colour))
 					if err != nil {
 						panic(err)
 					}
@@ -177,6 +189,8 @@ func main() {
 		}
 	}
 endOfLoop:
+	fmt.Println("restoring old parameters")
+
 	_, err = client.SetColour(baseColour.ToColourRequest())
 	if err != nil {
 		panic(err)
@@ -191,4 +205,6 @@ endOfLoop:
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("done, bye")
 }
