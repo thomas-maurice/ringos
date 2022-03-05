@@ -257,7 +257,7 @@
             $.ajax({
                 url: "api/config",
                 type: "POST",
-                data: JSON.stringify({ hostname: $('#configHostname').val() }),
+                data: JSON.stringify({ hostname: $('#configHostname').val() , password: $('#configDevicePassword').val() , disable_password: $('#configDisablePassword').prop("checked") }),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -421,9 +421,13 @@
                         on the network ?</small>
                 </div>
                 <div class="form-group">
-                    <label for="configEndpoint">Device Password (does not do anything right now)</label>
+                    <label for="configEndpoint">Device Password</label>
                     <input type="text" class="form-control" name="password" id="configDevicePassword"
                         placeholder="Enter a password">
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="configDisablePassword">
+                    <label class="form-check-label" for="configDisablePassword">Disables password authentication</label>
                 </div>
                 </br>
                 <button type="button" class="btn btn-primary" id="configUpdateButton" onclick="setConfig();">Update</button>

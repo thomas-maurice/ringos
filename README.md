@@ -50,6 +50,8 @@ When you first power up the device, it will not know what network to connect to.
 
 Note that you can add as many networks as you want (with respect of the internal flash size of course). At startup if any of the defined networks is available, the strongest one should be joined.
 
+You can protect the API access by using basic auth authentication. Note however that the password will be stored in plaintext on the device. The username you will use to connect to the basic auth is `admin`
+
 ## Screenshots
 ![Main screen](https://github.com/thomas-maurice/ringos/blob/master/_assets/main.png)
 
@@ -233,6 +235,28 @@ Reboots the device
   "reboot": true
 }
 ```
+
+### `GET /api/config`
+Gets the current config
+
+```json
+{
+  "hostname": "esp"
+}
+```
+
+### `POST /api/config`
+Updates the config
+
+```json
+{
+  "hostname": "esp",
+  "password": "some_password",
+  "disable_password": false
+}
+```
+
+The `password` field is optional. If you set `disable_password` to true it disables password authentication on the API. If you set a password you will be able to access the UI and API with basic auth.
 ## Limitations
 Eventhough the project works pretty well as is, it has a few limitations
 
@@ -243,4 +267,4 @@ Eventhough the project works pretty well as is, it has a few limitations
 - [x] API documentation
 - [x] Revamp the API to make it more consistant
 - [ ] Make the UI on par with the API
-- [ ] Optional password authentication for the API calls
+- [x] Optional password authentication for the API calls

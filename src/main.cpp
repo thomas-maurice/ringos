@@ -11,6 +11,7 @@
 #include <FastLED.h>
 
 #include "fsUtil.h"
+#include "auth.h"
 #include "mdnsUtil.h"
 #include "otaUtil.h"
 #include "misc.h"
@@ -98,8 +99,19 @@ int breathingIncrement = 20;
 int maxBreathingVal = 255;
 int breathingValue = 0;
 
+/* http basic auth thingy */
+// Default username
+String HTTP_USERNAME = "admin";
+// note the password is stored in plaintext unfortunately
+// due to the limitations of the esp library, and i cannot
+// be bothered to implement something to do the authentication
+// myself at the moment
+String HTTP_PASSWORD = "";
+
 /* Representation of the LEDs stip/ring */
 CRGB leds[MAX_NUM_LEDS];
+
+#define REQUEST_AUTHENTICATION if(needsAuth(HTTP_PASSWORD) && !request->authenticate(HTTP_USERNAME.c_str(),HTTP_PASSWORD.c_str(), "ESP8266")) {return request->requestAuthentication("ESP8266");}
 
 // Returns the WiFi status in a more human readable form
 String getWiFiStatus()
@@ -218,6 +230,13 @@ void setup()
     breathingIncrement = DEFAULT_BREATHING_SPEED;
   }
 
+  HTTP_PASSWORD = readFile("/config/pw", 256);
+  if(needsAuth(HTTP_PASSWORD)) {
+    Serial.println("password authentication is enabled");
+  } else {
+    Serial.println("password authentication is disabled");
+  }
+
   FastLED.setBrightness(BRIGHTNESS);
 
   for (int i = 0; i < NUM_LEDS; i++)
@@ -309,11 +328,16 @@ void setup()
 
   server.on(
       "/version", HTTP_GET, [](AsyncWebServerRequest *request)
-      { request->send(200, "text/plain", readFile("/version", 128)); });
+      {
+        REQUEST_AUTHENTICATION
+        request->send(200, "text/plain", readFile("/version", 128));
+      }
+    );
 
   server.on(
       "/api/status", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         DynamicJsonDocument jsonBuffer(2048);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
@@ -333,6 +357,7 @@ void setup()
   server.on(
       "/api/config", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         DynamicJsonDocument jsonBuffer(2048);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
@@ -344,6 +369,7 @@ void setup()
   AsyncCallbackJsonWebHandler *configUpdateHandler = new AsyncCallbackJsonWebHandler(
       "/api/config", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         if (json["hostname"] != nullptr)
         {
           String hostname = json["hostname"].as<String>();
@@ -355,12 +381,32 @@ void setup()
           Serial.printf("hostname changed to %s\n", hostname.c_str());
         }
 
+        if (json["password"] != nullptr && json["disable_password"] != nullptr)
+        {
+          String password = json["password"].as<String>();
+          bool disablePassword = json["disable_password"].as<bool>();
+          if(password.length() != 0 && !disablePassword) {
+            if (password.length() > 256)
+            {
+              return jsonError(request, 400, "password should be shorter than 256 bytes");
+            }
+            writeFile("/config/pw", password);
+            Serial.printf("password changed to %s\n", password.c_str());
+          }
+
+          if(disablePassword) {
+            writeFile("/config/pw", "");
+            Serial.printf("disabled password authentication");
+          }
+        }
+
         return jsonSuccess(request, 200, "successfully updated configuration");
       });
 
   server.on(
       "/api/toggle-led", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         DynamicJsonDocument jsonBuffer(2048);
         digitalWrite(LED_PIN, (digitalRead(LED_PIN) == 1) ? LOW : HIGH);
@@ -373,6 +419,7 @@ void setup()
   server.on(
       "/api/colour", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         char colour[7];
         sprintf(colour, "%02X%02X%02X", R, G, B);
 
@@ -396,6 +443,7 @@ void setup()
   server.on(
       "/api/chase", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
 
@@ -413,6 +461,7 @@ void setup()
   server.on(
       "/api/breathing", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
 
@@ -428,6 +477,7 @@ void setup()
   server.on(
       "/api/ping", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         response->setCode(200);
 
@@ -443,6 +493,7 @@ void setup()
   server.on(
       "/api/net/scan", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         String json = "[";
         int n = WiFi.scanComplete();
         if (n == -2)
@@ -478,6 +529,7 @@ void setup()
   server.on(
       "/api/net/list", HTTP_GET, [](AsyncWebServerRequest *request)
       {
+        REQUEST_AUTHENTICATION
         StaticJsonDocument<1024> jsonBuffer;
         DeserializationError err = deserializeJson(jsonBuffer, readFile("/config/networks.json", 1024));
 
@@ -502,17 +554,21 @@ void setup()
       });
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->redirect("/index.html"); });
+            { REQUEST_AUTHENTICATION
+            request->redirect("/index.html"); });
 
   server.on("/generate_204", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->send(204, "text/plain", "hello"); });
+            { REQUEST_AUTHENTICATION
+            request->send(204, "text/plain", "hello"); });
 
   server.on("/fwlink", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->send(204, "text/plain", "hello"); });
+            { REQUEST_AUTHENTICATION
+            request->send(204, "text/plain", "hello"); });
 
   AsyncCallbackJsonWebHandler *networkAddHandler = new AsyncCallbackJsonWebHandler(
       "/api/net/add", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         if (json["ssid"] == nullptr || json["psk"] == nullptr)
         {
           return jsonError(request, 400, "missing 'psk' or 'ssid' key");
@@ -571,6 +627,7 @@ void setup()
   AsyncCallbackJsonWebHandler *networkDelHandler = new AsyncCallbackJsonWebHandler(
       "/api/net/del", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         if (json["ssid"] == nullptr)
         {
           return jsonError(request, 400, "missing 'ssid' key");
@@ -610,6 +667,7 @@ void setup()
   AsyncCallbackJsonWebHandler *pingHandler = new AsyncCallbackJsonWebHandler(
       "/api/ping", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         String response;
         serializeJson(json["data"], response);
         request->send(200, "application/json", response);
@@ -618,6 +676,7 @@ void setup()
   AsyncCallbackJsonWebHandler *networkResetHandler = new AsyncCallbackJsonWebHandler(
       "/api/net/reset", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         if (json["reset"] != nullptr && json["reset"].as<bool>())
         {
           writeFile("/config/networks.json", "[]");
@@ -630,6 +689,7 @@ void setup()
   AsyncCallbackJsonWebHandler *chaseSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/chase", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         bool persist = isPersist(json);
         if (json["direction"] != nullptr)
         {
@@ -648,6 +708,7 @@ void setup()
 
         if (json["length"] != nullptr)
         {
+          REQUEST_AUTHENTICATION
           int length = json["length"].as<int>();
           if (length < 0 || length > NUM_LEDS - 1)
           {
@@ -663,6 +724,7 @@ void setup()
 
         if (json["speed"] != nullptr)
         {
+          REQUEST_AUTHENTICATION
           int speed = json["speed"].as<int>();
           if (speed < 1 || speed > 30)
           {
@@ -682,6 +744,7 @@ void setup()
   AsyncCallbackJsonWebHandler *breathingSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/breathing", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         bool persist = isPersist(json);
         if (json["speed"] != nullptr)
         {
@@ -704,6 +767,7 @@ void setup()
   AsyncCallbackJsonWebHandler *colourSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/colour", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         bool persist = isPersist(json);
 
         if (json["colour"] != nullptr)
@@ -763,6 +827,7 @@ void setup()
   AsyncCallbackJsonWebHandler *systemSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/system", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         if (json["num_leds"] != nullptr)
         {
           int num_leds = json["num_leds"].as<int>();
@@ -785,6 +850,7 @@ void setup()
   AsyncCallbackJsonWebHandler *rebootHandler = new AsyncCallbackJsonWebHandler(
       "/api/reboot", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
+        REQUEST_AUTHENTICATION
         if (json["reboot"] != nullptr)
         {
           bool reboot = json["reboot"].as<bool>();

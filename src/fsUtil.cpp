@@ -40,7 +40,7 @@ int writeFile(String fname, String data)
     file.close();
     return -1;
   }
-  if (!file.print(data))
+  if (!file.print(data) && data.length() != 0)
   {
     Serial.println("File write failed on " + fname);
     file.close();

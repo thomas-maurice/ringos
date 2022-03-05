@@ -114,5 +114,7 @@ type AddNetworkRequest struct {
 }
 
 type Config struct {
-	Hostname *string `json:"hostname"`
+	Hostname        *string `json:"hostname"`
+	Password        *string `json:"password"`
+	DisablePassword bool    `json:"disable_password"`
 }

@@ -14,11 +14,17 @@ type Client struct {
 	httpClient    *http.Client
 	targetAddress string
 	debug         bool
+	username      string
+	password      string
+	authEnabled   bool
 }
 
 type ClientConfig struct {
 	TargetAddress string
 	Debug         bool
+	Username      string
+	Password      string
+	AuthEnabled   bool
 }
 
 func NewClient(config *ClientConfig) (*Client, error) {
@@ -26,6 +32,9 @@ func NewClient(config *ClientConfig) (*Client, error) {
 		httpClient:    &http.Client{},
 		targetAddress: config.TargetAddress,
 		debug:         config.Debug,
+		username:      config.Username,
+		password:      config.Password,
+		authEnabled:   config.AuthEnabled,
 	}, nil
 }
 
@@ -46,6 +55,10 @@ func (c *Client) Get(url string, ret interface{}) (int, error) {
 	if c.debug {
 		bytes, _ := httputil.DumpRequestOut(req, true)
 		fmt.Println(string(bytes))
+	}
+
+	if c.authEnabled {
+		req.SetBasicAuth(c.username, c.password)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -90,6 +103,10 @@ func (c *Client) Post(url string, data interface{}, ret interface{}) (int, error
 	if c.debug {
 		bytes, _ := httputil.DumpRequestOut(req, true)
 		fmt.Println(string(bytes))
+	}
+
+	if c.authEnabled {
+		req.SetBasicAuth(c.username, c.password)
 	}
 
 	resp, err := c.httpClient.Do(req)
