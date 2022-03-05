@@ -112,3 +112,7 @@ type AddNetworkRequest struct {
 	SSID string `json:"ssid"`
 	PSK  string `json:"psk"`
 }
+
+type Config struct {
+	Hostname *string `json:"hostname"`
+}

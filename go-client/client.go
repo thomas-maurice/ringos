@@ -136,6 +136,15 @@ func (c *Client) Colour() (*ColourResponse, error) {
 	return &colour, nil
 }
 
+func (c *Client) GetConfig() (*Config, error) {
+	var config Config
+	_, err := c.Get(c.buildURL("api", "config"), &config)
+	if err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
 func (c *Client) Chase() (*ChaseResponse, error) {
 	var chase ChaseResponse
 	_, err := c.Get(c.buildURL("api", "chase"), &chase)
@@ -211,6 +220,15 @@ func (c *Client) DeleteNetwork(req DeleteNetworkRequest) (*GenericAnswer, error)
 func (c *Client) AddNetwork(req AddNetworkRequest) (*GenericAnswer, error) {
 	var resp GenericAnswer
 	_, err := c.Post(c.buildURL("api", "net", "add"), &req, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) UpdateConfig(req Config) (*GenericAnswer, error) {
+	var resp GenericAnswer
+	_, err := c.Post(c.buildURL("api", "config"), &req, &resp)
 	if err != nil {
 		return nil, err
 	}
