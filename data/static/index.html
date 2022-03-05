@@ -49,7 +49,7 @@
 
         function updateConfigTab() {
             $.getJSON("api/config", function (data) {
-                $("#configName").val(data["hostname"]);
+                $("#configHostname").val(data["hostname"]);
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not get the configuration of the device: " + textStatus, "error");
             });
@@ -253,6 +253,21 @@
             });
         }
 
+        function setConfig() {
+            $.ajax({
+                url: "api/config",
+                type: "POST",
+                data: JSON.stringify({ hostname: $('#configHostname').val() }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated configuration", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not update the configuration of the device: " + textStatus, "error");
+            });
+        }
+
         $(document).ready(function () {
             $("#colourUpdateButton").click(updateColour);
             $("#chaseAnimationUpdateButton").click(updateChaseSpeed);
@@ -398,22 +413,20 @@
             </div>
             <div class="tab-pane fade" id="nav-config" role="tabpanel" aria-labelledby="config-tab">
                 <div class="alert alert-warning mt-2">Note that any update to the configuration requires a reboot.</div>
-                <form action="api/config" method="POST">
-                    <div class="form-group">
-                        <label for="configEndpoint">Device name</label>
-                        <input type="text" class="form-control" name="name" id="configName"
-                            aria-describedby="configHostnameHelp" placeholder="Enter a name">
-                        <small id="configHostnameHelp" class="form-text text-muted">Which name should the jar advertise
-                            on the network ?</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="configEndpoint">Device Password</label>
-                        <input type="text" class="form-control" name="password" id="configDevicePassword"
-                            placeholder="Enter a password">
-                    </div>
-                    </br>
-                    <button type="submit" class="btn btn-primary" id="configUpdateButton">Update</button>
-                </form>
+                <div class="form-group">
+                    <label for="configEndpoint">Device name</label>
+                    <input type="text" class="form-control" name="name" id="configHostname"
+                        aria-describedby="configHostnameHelp" placeholder="Enter a name">
+                    <small id="configHostnameHelp" class="form-text text-muted">Which name should the jar advertise
+                        on the network ?</small>
+                </div>
+                <div class="form-group">
+                    <label for="configEndpoint">Device Password (does not do anything right now)</label>
+                    <input type="text" class="form-control" name="password" id="configDevicePassword"
+                        placeholder="Enter a password">
+                </div>
+                </br>
+                <button type="button" class="btn btn-primary" id="configUpdateButton" onclick="setConfig();">Update</button>
             </div>
             <div class="tab-pane fade" id="nav-reboot" role="tabpanel" aria-labelledby="reboot-tab">
                 <div class="container">

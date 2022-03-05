@@ -340,6 +340,23 @@ void setup()
         serializeJson(jsonBuffer, *response);
         request->send(response);
       });
+  
+  AsyncCallbackJsonWebHandler *configUpdateHandler = new AsyncCallbackJsonWebHandler(
+      "/api/config", [](AsyncWebServerRequest *request, JsonVariant &json)
+      {
+        if (json["hostname"] != nullptr)
+        {
+          String hostname = json["hostname"].as<String>();
+          if (hostname.length() > 256)
+          {
+            return jsonError(request, 400, "hostname should be shorter than 256 bytes");
+          }
+          writeFile("/config/hostname", hostname);
+          Serial.printf("hostname changed to %s\n", hostname.c_str());
+        }
+
+        return jsonSuccess(request, 200, "successfully updated configuration");
+      });
 
   server.on(
       "/api/toggle-led", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -795,6 +812,8 @@ void setup()
   server.addHandler(breathingSetHandler);
   server.addHandler(rebootHandler);
   server.addHandler(pingHandler);
+
+  server.addHandler(configUpdateHandler);
 
   server.serveStatic("/index.html", LittleFS, "/static/index.html");
   server.serveStatic("/bootstrap.js", LittleFS, "/static/bootstrap.js").setCacheControl("max-age=3600");
