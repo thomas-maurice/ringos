@@ -58,7 +58,7 @@
         function updateColourTab() {
             $.getJSON("api/colour", function (data) {
                 $("#configColour").val("#" + data["colour"]);
-                $("#animationMode").val(data["mode"]);
+                $("#animationMode").text(data["mode"]);
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not get the colour of the device: " + textStatus, "error");
             });
@@ -219,6 +219,51 @@
             });
         }
 
+        function modeSetBreathing() {
+            $.ajax({
+                url: "api/colour",
+                type: "POST",
+                data: JSON.stringify({ mode: "breathing", persist: true }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated mode", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the mode of the device: " + textStatus, "error");
+            });
+        }
+
+        function modeSetChase() {
+            $.ajax({
+                url: "api/colour",
+                type: "POST",
+                data: JSON.stringify({ mode: "chase", persist: true }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated mode", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the mode of the device: " + textStatus, "error");
+            });
+        }
+
+        function modeSetStatic() {
+            $.ajax({
+                url: "api/colour",
+                type: "POST",
+                data: JSON.stringify({ mode: "static", persist: true }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated mode", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the mode of the device: " + textStatus, "error");
+            });
+        }
+
         function updateChaseSpeed() {
             speed = $("#chase_speed_range").val()
             direction = 1;
@@ -236,6 +281,23 @@
                 }
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not change the chase direction: " + textStatus, "error");
+            });
+        }
+
+        function updateBreathingSpeed() {
+            speed = $("#breathing_range").val()
+            direction = 1;
+            $.ajax({
+                url: "api/breathing",
+                type: "POST",
+                data: JSON.stringify({ speed: speed, persist: true }),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    $.notify("Successfully updated breathing animation", "success");
+                }
+            }).fail(function (jqxhr, textStatus, error) {
+                $.notify("Could not change the breathing animation: " + textStatus, "error");
             });
         }
 
@@ -271,8 +333,12 @@
 
         $(document).ready(function () {
             $("#colourUpdateButton").click(updateColour);
+            $("#modeSetChase").click(modeSetChase);
+            $("#modeSetBreathing").click(modeSetBreathing);
+            $("#modeSetStatic").click(modeSetStatic);
             $("#chaseAnimationUpdateButton").click(updateChaseSpeed);
             $("#brightnessUpdateButton").click(setBrightness);
+            $("#breathingUpdateButton").click(updateBreathingSpeed);
             updateColourTab();
             updateInfoTab();
             updateConfigTab();
@@ -334,8 +400,11 @@
         </ul>
         <div class="tab-content" id="tabContent">
             <div class="tab-pane fade show active" id="nav-color" role="tabpanel" aria-labelledby="color-tab">
-                Animation selected: <span id="animationMode" /><br />
                 <div class="alert alert-success mt-2">Update the colour of the animation</div>
+                Animation selected: <span id="animationMode"></span><br />
+                <button class="btn btn-primary" id="modeSetChase">Chase mode</button>
+                <button class="btn btn-primary" id="modeSetBreathing">Breathing mode</button>
+                <button class="btn btn-primary" id="modeSetStatic">Static mode</button>
                 <form id="#colorForm">
                     <div class="form-group">
                         <label for="configColour">Colour change</label>
@@ -352,6 +421,11 @@
                 <label for="brightness_range" class="form-label">Brightness</label>
                 <input type="range" class="form-range" min="0" max="255" step="1" id="brightness_range">
                 <button class="btn btn-primary" id="brightnessUpdateButton">Update brightness</button>
+                <br></br>
+                <h3>Change breathing speed</h3>
+                <label for="breathing_range" class="form-label">Breathing speed</label>
+                <input type="range" class="form-range" min="1" max="79" step="1" id="breathing_range">
+                <button class="btn btn-primary" id="breathingUpdateButton">Update breathing speed</button>
                 <br></br>
                 <h3>Chase animation setting</h3>
                 <label for="chase_speed_range" class="form-label">Chase speed (lower is faster)</label>

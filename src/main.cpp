@@ -751,7 +751,7 @@ void setup()
           int speed = json["speed"].as<int>();
           if (speed < 1 || speed > 80)
           {
-            return jsonError(request, 400, "speed should be between 1 and 40");
+            return jsonError(request, 400, "speed should be between 1 and 80");
           }
           breathingIncrement = speed;
           if (persist)
