@@ -58,6 +58,7 @@
         function updateColourTab() {
             $.getJSON("api/colour", function (data) {
                 $("#configColour").val("#" + data["colour"]);
+                $("#animationMode").val(data["mode"]);
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not get the colour of the device: " + textStatus, "error");
             });
@@ -257,7 +258,7 @@
             $.ajax({
                 url: "api/config",
                 type: "POST",
-                data: JSON.stringify({ hostname: $('#configHostname').val() , password: $('#configDevicePassword').val() , disable_password: $('#configDisablePassword').prop("checked") }),
+                data: JSON.stringify({ hostname: $('#configHostname').val(), password: $('#configDevicePassword').val(), disable_password: $('#configDisablePassword').prop("checked") }),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -312,7 +313,7 @@
         <ul class="nav nav-tabs" role="tablist" id="mainTab">
             <li class="nav-item">
                 <a class="nav-link active" id="color-tab" data-bs-toggle="tab" href="#nav-color" role="presentation"
-                    aria-controls="color" aria-selected="true">Colour</a>
+                    aria-controls="color" aria-selected="true">Colour & Animation</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" id="network-tab" data-bs-toggle="tab" href="#nav-network" role="presentation"
@@ -333,6 +334,7 @@
         </ul>
         <div class="tab-content" id="tabContent">
             <div class="tab-pane fade show active" id="nav-color" role="tabpanel" aria-labelledby="color-tab">
+                Animation selected: <span id="animationMode" /><br />
                 <div class="alert alert-success mt-2">Update the colour of the animation</div>
                 <form id="#colorForm">
                     <div class="form-group">
@@ -430,7 +432,8 @@
                     <label class="form-check-label" for="configDisablePassword">Disables password authentication</label>
                 </div>
                 </br>
-                <button type="button" class="btn btn-primary" id="configUpdateButton" onclick="setConfig();">Update</button>
+                <button type="button" class="btn btn-primary" id="configUpdateButton"
+                    onclick="setConfig();">Update</button>
             </div>
             <div class="tab-pane fade" id="nav-reboot" role="tabpanel" aria-labelledby="reboot-tab">
                 <div class="container">
