@@ -1,3 +1,3 @@
 module github.com/thomas-maurice/ringos
 
-go 1.16
+go 1.17
