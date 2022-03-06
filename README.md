@@ -241,7 +241,8 @@ Gets the current config
 
 ```json
 {
-  "hostname": "esp"
+  "hostname": "esp",
+  "leds": 69
 }
 ```
 
@@ -252,11 +253,12 @@ Updates the config
 {
   "hostname": "esp",
   "password": "some_password",
-  "disable_password": false
+  "disable_password": false,
+  "leds": 69
 }
 ```
 
-The `password` field is optional. If you set `disable_password` to true it disables password authentication on the API. If you set a password you will be able to access the UI and API with basic auth.
+The `password` field is optional. If you set `disable_password` to true it disables password authentication on the API. If you set a password you will be able to access the UI and API with basic auth. `leds` is the number of leds that the chip is handling.
 ## Limitations
 Eventhough the project works pretty well as is, it has a few limitations
 

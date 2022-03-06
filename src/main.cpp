@@ -111,7 +111,11 @@ String HTTP_PASSWORD = "";
 /* Representation of the LEDs stip/ring */
 CRGB leds[MAX_NUM_LEDS];
 
-#define REQUEST_AUTHENTICATION if(needsAuth(HTTP_PASSWORD) && !request->authenticate(HTTP_USERNAME.c_str(),HTTP_PASSWORD.c_str(), "ESP8266")) {return request->requestAuthentication("ESP8266");}
+#define REQUEST_AUTHENTICATION                                                                                     \
+  if (needsAuth(HTTP_PASSWORD) && !request->authenticate(HTTP_USERNAME.c_str(), HTTP_PASSWORD.c_str(), "ESP8266")) \
+  {                                                                                                                \
+    return request->requestAuthentication("ESP8266");                                                              \
+  }
 
 // Returns the WiFi status in a more human readable form
 String getWiFiStatus()
@@ -231,9 +235,12 @@ void setup()
   }
 
   HTTP_PASSWORD = readFile("/config/pw", 256);
-  if(needsAuth(HTTP_PASSWORD)) {
+  if (needsAuth(HTTP_PASSWORD))
+  {
     Serial.println("password authentication is enabled");
-  } else {
+  }
+  else
+  {
     Serial.println("password authentication is disabled");
   }
 
@@ -330,9 +337,7 @@ void setup()
       "/version", HTTP_GET, [](AsyncWebServerRequest *request)
       {
         REQUEST_AUTHENTICATION
-        request->send(200, "text/plain", readFile("/version", 128));
-      }
-    );
+        request->send(200, "text/plain", readFile("/version", 128)); });
 
   server.on(
       "/api/status", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -351,8 +356,7 @@ void setup()
         root["wifi_status"] = getWiFiStatus();
         root["chip_id"] = getChipID();
         serializeJson(jsonBuffer, *response);
-        request->send(response);
-      });
+        request->send(response); });
 
   server.on(
       "/api/config", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -362,10 +366,10 @@ void setup()
         DynamicJsonDocument jsonBuffer(2048);
         JsonVariant root = jsonBuffer.as<JsonVariant>();
         root["hostname"] = readFile("/config/hostname", 256);
+        root["leds"] = readIntFile("/config/leds", 256);
         serializeJson(jsonBuffer, *response);
-        request->send(response);
-      });
-  
+        request->send(response); });
+
   AsyncCallbackJsonWebHandler *configUpdateHandler = new AsyncCallbackJsonWebHandler(
       "/api/config", [](AsyncWebServerRequest *request, JsonVariant &json)
       {
@@ -400,8 +404,20 @@ void setup()
           }
         }
 
-        return jsonSuccess(request, 200, "successfully updated configuration");
-      });
+        if (json["leds"] != nullptr)
+        {
+          int leds = json["leds"].as<int>();
+          if (leds < 1 || leds > MAX_NUM_LEDS)
+          {
+            char errMsg[256];
+            sprintf(errMsg, "number of leds should be between 1 and %d", MAX_NUM_LEDS);
+            return jsonError(request, 400, errMsg);
+          }
+          writeIntFile("/config/leds", leds);
+          Serial.printf("updated config to run on %d leds\n", leds);
+        }
+
+        return jsonSuccess(request, 200, "successfully updated configuration"); });
 
   server.on(
       "/api/toggle-led", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -413,8 +429,7 @@ void setup()
         JsonVariant root = jsonBuffer.as<JsonVariant>();
         root["led_on"] = (digitalRead(LED_PIN) == 1) ? false : true;
         serializeJson(jsonBuffer, *response);
-        request->send(response);
-      });
+        request->send(response); });
 
   server.on(
       "/api/colour", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -437,8 +452,7 @@ void setup()
         root["mode"] = OPERATION_MODE;
         serializeJson(jsonBuffer, *response);
 
-        request->send(response);
-      });
+        request->send(response); });
 
   server.on(
       "/api/chase", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -455,8 +469,7 @@ void setup()
         root["length"] = chaseTrailLength;
         serializeJson(jsonBuffer, *response);
 
-        request->send(response);
-      });
+        request->send(response); });
 
   server.on(
       "/api/breathing", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -471,8 +484,7 @@ void setup()
         root["speed"] = abs(breathingIncrement);
         serializeJson(jsonBuffer, *response);
 
-        request->send(response);
-      });
+        request->send(response); });
 
   server.on(
       "/api/ping", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -487,8 +499,7 @@ void setup()
         root["ping"] = "pong";
         serializeJson(jsonBuffer, *response);
 
-        request->send(response);
-      });
+        request->send(response); });
 
   server.on(
       "/api/net/scan", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -523,8 +534,7 @@ void setup()
         }
         json += "]";
         request->send(200, "application/json", json);
-        json = String();
-      });
+        json = String(); });
 
   server.on(
       "/api/net/list", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -550,8 +560,7 @@ void setup()
 
         AsyncResponseStream *response = request->beginResponseStream("application/json");
         serializeJson(jsonResponse, *response);
-        request->send(response);
-      });
+        request->send(response); });
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { REQUEST_AUTHENTICATION
@@ -621,8 +630,7 @@ void setup()
         }
         configFile.close();
 
-        return jsonSuccess(request, 200, "successfully added network");
-      });
+        return jsonSuccess(request, 200, "successfully added network"); });
 
   AsyncCallbackJsonWebHandler *networkDelHandler = new AsyncCallbackJsonWebHandler(
       "/api/net/del", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -661,8 +669,7 @@ void setup()
         }
         configFile.close();
 
-        return jsonSuccess(request, 200, "successfully removed network");
-      });
+        return jsonSuccess(request, 200, "successfully removed network"); });
 
   AsyncCallbackJsonWebHandler *pingHandler = new AsyncCallbackJsonWebHandler(
       "/api/ping", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -670,8 +677,7 @@ void setup()
         REQUEST_AUTHENTICATION
         String response;
         serializeJson(json["data"], response);
-        request->send(200, "application/json", response);
-      });
+        request->send(200, "application/json", response); });
 
   AsyncCallbackJsonWebHandler *networkResetHandler = new AsyncCallbackJsonWebHandler(
       "/api/net/reset", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -683,8 +689,7 @@ void setup()
           return jsonSuccess(request, 200, "successfully wiped network configuration");
         }
 
-        return jsonError(request, 400, "you must set 'reset to true'");
-      });
+        return jsonError(request, 400, "you must set 'reset to true'"); });
 
   AsyncCallbackJsonWebHandler *chaseSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/chase", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -738,8 +743,7 @@ void setup()
           Serial.printf("chase speed set to %d\n", speed);
         }
 
-        return jsonSuccess(request, 200, "successfully changed chase configuration");
-      });
+        return jsonSuccess(request, 200, "successfully changed chase configuration"); });
 
   AsyncCallbackJsonWebHandler *breathingSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/breathing", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -761,8 +765,7 @@ void setup()
           Serial.printf("breathing speed set to %d\n", speed);
         }
 
-        return jsonSuccess(request, 200, "successfully changed chase configuration");
-      });
+        return jsonSuccess(request, 200, "successfully changed chase configuration"); });
 
   AsyncCallbackJsonWebHandler *colourSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/colour", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -821,8 +824,7 @@ void setup()
           }
         }
 
-        return jsonSuccess(request, 200, "successfully changed colour mode");
-      });
+        return jsonSuccess(request, 200, "successfully changed colour mode"); });
 
   AsyncCallbackJsonWebHandler *systemSetHandler = new AsyncCallbackJsonWebHandler(
       "/api/system", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -844,8 +846,7 @@ void setup()
           writeFile("/config/hostname", hostname);
         }
 
-        return jsonSuccess(request, 200, "successfully changed system infos, you'll need a reboot");
-      });
+        return jsonSuccess(request, 200, "successfully changed system infos, you'll need a reboot"); });
 
   AsyncCallbackJsonWebHandler *rebootHandler = new AsyncCallbackJsonWebHandler(
       "/api/reboot", [](AsyncWebServerRequest *request, JsonVariant &json)
@@ -864,8 +865,7 @@ void setup()
           }
         }
 
-        return jsonSuccess(request, 200, "asked for a reboot");
-      });
+        return jsonSuccess(request, 200, "asked for a reboot"); });
 
   server.addHandler(pingHandler);
   server.addHandler(networkAddHandler);

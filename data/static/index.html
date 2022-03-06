@@ -19,8 +19,10 @@
                 $("#name").text(data["hostname"]);
                 $("#ipaddress").text(data["address"]);
                 $("#wifi_status").text(data["wifi_status"]);
+                $("#number_leds").text(data["leds"]);
                 $("#led_status").text(data["led_on"]);
                 $("#chip_id").text(data["chip_id"]);
+                $('#configLedNumber').val(data["leds"]);
             }).fail(function (jqxhr, textStatus, error) {
                 $.notify("Could not get updates from the device: " + textStatus, "error");
             });
@@ -320,7 +322,12 @@
             $.ajax({
                 url: "api/config",
                 type: "POST",
-                data: JSON.stringify({ hostname: $('#configHostname').val(), password: $('#configDevicePassword').val(), disable_password: $('#configDisablePassword').prop("checked") }),
+                data: JSON.stringify({
+                    hostname: $('#configHostname').val(),
+                    password: $('#configDevicePassword').val(),
+                    disable_password: $('#configDisablePassword').prop("checked"),
+                    leds: $('#configLedNumber').val()
+                }),
                 dataType: "json",
                 contentType: "application/json",
                 success: function () {
@@ -481,6 +488,7 @@
                         <li>MAC address: <span id="summary_mac"></span></li>
                         <li>WiFi status: <span id="wifi_status"></span></li>
                         <li>LED is on: <span id="led_status"></span></li>
+                        <li>Number of LEDs: <span id="number_leds"></span></li>
                         <li>Chip ID: <span id="chip_id"></span></li>
                     </ul>
                     <button type="button" class="btn btn-info btn-lg btn-block" id="toggle_led_button">Toggle LED
@@ -488,7 +496,8 @@
                 </div>
             </div>
             <div class="tab-pane fade" id="nav-config" role="tabpanel" aria-labelledby="config-tab">
-                <div class="alert alert-warning mt-2">Note that any update to the configuration requires a reboot.</div>
+                <div class="alert alert-warning mt-2">Note that most updates to the configuration requires a reboot.
+                </div>
                 <div class="form-group">
                     <label for="configEndpoint">Device name</label>
                     <input type="text" class="form-control" name="name" id="configHostname"
@@ -504,6 +513,10 @@
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="configDisablePassword">
                     <label class="form-check-label" for="configDisablePassword">Disables password authentication</label>
+                </div>
+                <div class="form-outline">
+                    <input type="number" min="0" id="configLedNumber" class="form-control" />
+                    <label class="form-label" for="configLedNumber">Number of LEDs</label>
                 </div>
                 </br>
                 <button type="button" class="btn btn-primary" id="configUpdateButton"
