@@ -21,17 +21,17 @@ type ColourResponse struct {
 
 func (c *ColourResponse) ToColourRequest() *ColourRequest {
 	return &ColourRequest{
-		Colour:     c.Colour,
-		Brightness: c.Brightness,
-		Mode:       c.Mode,
+		Colour:     &c.Colour,
+		Brightness: &c.Brightness,
+		Mode:       &c.Mode,
 	}
 }
 
 type ColourRequest struct {
-	Colour     string `json:"colour,omitempty"`
-	Mode       string `json:"mode,omitempty"`
-	Brightness int64  `json:"brightness,omitempty"`
-	Persist    bool   `json:"persist"`
+	Colour     *string `json:"colour,omitempty"`
+	Mode       *string `json:"mode,omitempty"`
+	Brightness *int64  `json:"brightness,omitempty"`
+	Persist    *bool   `json:"persist"`
 }
 
 // BreathingResponse gets you how the device
@@ -116,6 +116,6 @@ type AddNetworkRequest struct {
 type Config struct {
 	Hostname        *string `json:"hostname"`
 	Password        *string `json:"password"`
-	DisablePassword bool    `json:"disable_password"`
+	DisablePassword *bool   `json:"disable_password"`
 	LEDs            *int    `json:"leds"`
 }

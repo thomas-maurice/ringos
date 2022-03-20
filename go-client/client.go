@@ -38,6 +38,10 @@ func NewClient(config *ClientConfig) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) URL(pathes ...string) string {
+	return c.buildURL(pathes...)
+}
+
 func (c *Client) buildURL(pathes ...string) string {
 	return fmt.Sprintf(
 		c.targetAddress+"/%s",
