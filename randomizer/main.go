@@ -77,8 +77,8 @@ func randomize() (string, *ringo.ColourRequest, interface{}) {
 
 	if rand.Int()%ColourChangeMax >= ColourChangeChance {
 		clr = &ringo.ColourRequest{
-			Colour: c,
-			Mode:   ringo.MODE_CHASE,
+			Colour: ringo.String(c),
+			Mode:   ringo.String(ringo.MODE_CHASE),
 		}
 	}
 
